@@ -34,7 +34,8 @@ def step_1():
     while sign_sus==False :
         os.system("cls")
         uname=input("请输入您的手机号:")
-        password=input("请输入您的密码:")
+        import getpass
+        password=getpass.getpass("请输入您的密码:")
         sign_in_rsp=sign_in(uname,password)
         sign_in_json=sign_in_rsp.json()
         if sign_in_json['status'] == False:
@@ -129,6 +130,7 @@ def deal_misson(missons:list):
         pattern = re.compile(r'attachments":([\s\S]*),"defaults"') 
         re_result=re.findall(pattern,medias_text)[0]
         reportUrl=re.findall(r'reportUrl":([\s\S]*),"chapterCapture"',medias_text)[0]
+        reportUrl=reportUrl.replace("\"","")
         result_json=json.loads(re_result)
         for video_item in result_json:
             if video_item.get("isPassed") == True:
@@ -161,10 +163,9 @@ def deal_misson(missons:list):
                     }
                     import time
                     elses="/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=4&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken,chapter_data.get('clazzid')[0],duration,objectId,otherInfo,jobid,uid,encode_enc(chapter_data.get('clazzid')[0],duration,objectId,otherInfo,jobid,uid),int(time.time()*1000))
-                    reportUrl=reportUrl.replace("\"","")
-                    reportUrl=reportUrl+str(elses)
-                    print(reportUrl)
-                    multimedia_rsp=requests.get(url=reportUrl,headers=multimedia_headers)
+                    reportUrl_item=reportUrl+str(elses)
+                    print(reportUrl_item)
+                    multimedia_rsp=requests.get(url=reportUrl_item,headers=multimedia_headers)
                     print(multimedia_rsp.text)
 class Things():
     def __init__(self, username='nobody'):
