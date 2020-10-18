@@ -2,6 +2,7 @@
 # _*_ coding:utf-8 _*_
 import requests,base64,os,sys,time
 from lxml import etree
+from urllib import parse
 def encode_enc(clazzid:str,duration:int,objectId:str,otherinfo:str,jobid:str,userid:str):
     import hashlib
     data="[{0}][{1}][{2}][{3}][{4}][{5}][{6}][0_{7}]".format(clazzid,userid,jobid,objectId,duration*1000,"d_yHJ!$pdA~5",duration*1000,duration)
@@ -95,7 +96,8 @@ def deal_course(url:str):
     }
     #302跳转，requests库默认追踪headers里的location进行跳转，使用allow_redirects=False
     course_302_rsp=requests.get(url=course_302_url,headers=course_headers,allow_redirects=False)
-    course_rsp=requests.get(url=course_302_rsp.headers['Location'],headers=course_headers)
+    new_url=course_302_rsp.headers['Location']
+    course_rsp=requests.get(url=new_url,headers=course_headers)
     course_HTML=etree.HTML(course_rsp.text)
     #为防止账号没有课程或没有班级，需要后期在xpath获取加入try，以防报错
     chapter_mission=[]
@@ -112,13 +114,14 @@ def deal_course(url:str):
     except:
         pass
     print("课程读取完成，共有%d个章节可一键完成"%len(chapter_mission))
-    deal_misson(chapter_mission)
-def deal_misson(missons:list):
-    from urllib import parse
+    result = parse.urlparse(new_url)
+    new_url_data=parse.parse_qs(result.query)
+    deal_misson(chapter_mission,new_url_data.get("cpi")[0])
+def deal_misson(missons:list,class_cpi:str):
     for chapter_mission_item in missons:
         result = parse.urlparse(chapter_mission_item)
         chapter_data=parse.parse_qs(result.query)
-        medias_url="https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num=0&ut=s&cpi=149176464&v=20160407-1".format(chapter_data.get('clazzid')[0],chapter_data.get('courseId')[0],chapter_data.get('chapterId')[0])
+        medias_url="https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num=0&ut=s&cpi={3}&v=20160407-1".format(chapter_data.get('clazzid')[0],chapter_data.get('courseId')[0],chapter_data.get('chapterId')[0],class_cpi)
         class_headers={
         'Cookie':cookieStr,
         'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
