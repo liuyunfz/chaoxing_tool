@@ -117,59 +117,84 @@ def deal_course(url:str):
     result = parse.urlparse(new_url)
     new_url_data=parse.parse_qs(result.query)
     deal_misson(chapter_mission,new_url_data.get("cpi")[0])
+def read_cardcount(courseId:str,clazzid:str,chapterId:str,cpi:str):
+    url='https://mooc1-2.chaoxing.com/mycourse/studentstudyAjax'
+    headers={
+        'Accept':'*/*',
+        'Accept-Encoding':'gzip, deflate, br',
+        'Accept-Language':'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Connection':'keep-alive',
+        'Content-Length':'87',
+        'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
+        'Cookie':cookieStr,
+        'Host':'mooc1-2.chaoxing.com',
+        'Origin':'https://mooc1-2.chaoxing.com',
+        'Referer':'https://mooc1-2.chaoxing.com/mycourse/studentstudy?chapterId=357838590&courseId=214734258&clazzid=32360675&enc=ccf66103f539dfec439e4898b62c8024',  
+        'Sec-Fetch-Dest':'empty',
+        'Sec-Fetch-Mode':'cors',
+        'Sec-Fetch-Site':'same-origin',
+        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.60',
+        'X-Requested-With':'XMLHttpRequest'
+    }
+    data="courseId={0}&clazzid={1}&chapterId={2}&cpi={3}&verificationcode=".format(courseId,clazzid,chapterId,cpi)
+    rsp=requests.post(url=url,headers=headers,data=data)
+    rsp_HTML=etree.HTML(rsp.text)
+    return rsp_HTML.xpath("//input[@id='cardcount']/@value")[0]
 def deal_misson(missons:list,class_cpi:str):
     for chapter_mission_item in missons:
         result = parse.urlparse(chapter_mission_item)
         chapter_data=parse.parse_qs(result.query)
-        medias_url="https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num=0&ut=s&cpi={3}&v=20160407-1".format(chapter_data.get('clazzid')[0],chapter_data.get('courseId')[0],chapter_data.get('chapterId')[0],class_cpi)
-        class_headers={
-        'Cookie':cookieStr,
-        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
-        }
-        medias_rsp=requests.get(url=medias_url,headers=class_headers)
-        medias_HTML=etree.HTML(medias_rsp.text)
-        medias_text=medias_HTML.xpath("//script[1]/text()")[0]
-        import re,json
-        pattern = re.compile(r'attachments":([\s\S]*),"defaults"') 
-        re_result=re.findall(pattern,medias_text)[0]
-        reportUrl=re.findall(r'reportUrl":([\s\S]*),"chapterCapture"',medias_text)[0]
-        reportUrl=reportUrl.replace("\"","")
-        result_json=json.loads(re_result)
-        for video_item in result_json:
-            if video_item.get("isPassed") == True:
-                pass
-            else:
-                if video_item.get("type") == "video":
-                    objectId=video_item.get("objectId")
-                    otherInfo=video_item.get("otherInfo")
-                    jobid=video_item.get("jobid")
-                    name=video_item.get('property').get('name')
-                    status_url="https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(objectId)
-                    status_rsp=requests.get(url=status_url,headers=class_headers)
-                    status_json=json.loads(status_rsp.text)
-                    duration=status_json.get('duration')
-                    dtoken=status_json.get('dtoken')
-                    print(objectId,otherInfo,jobid,uid,name,duration,reportUrl)
-                    multimedia_headers={
-                        'Accept':'*/*',
-                        'Accept-Encoding':'gzip, deflate, br',
-                        'Accept-Language':'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-                        'Connection':'keep-alive',
-                        'Content-Type':'application/json',
-                        'Cookie':cookieStr,
-                        'Host':'mooc1-1.chaoxing.com',
-                        'Referer':'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
-                        'Sec-Fetch-Dest':'empty',
-                        'Sec-Fetch-Mode':'cors',
-                        'Sec-Fetch-Site':'same-origin',
-                        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
-                    }
-                    import time
-                    elses="/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=4&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken,chapter_data.get('clazzid')[0],duration,objectId,otherInfo,jobid,uid,encode_enc(chapter_data.get('clazzid')[0],duration,objectId,otherInfo,jobid,uid),int(time.time()*1000))
-                    reportUrl_item=reportUrl+str(elses)
-                    print(reportUrl_item)
-                    multimedia_rsp=requests.get(url=reportUrl_item,headers=multimedia_headers)
-                    print(multimedia_rsp.text)
+        for num in range(int(read_cardcount(chapter_data.get('courseId')[0],chapter_data.get('clazzid')[0],chapter_data.get('chapterId')[0],class_cpi))):
+            print("num:",num)
+            medias_url="https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(chapter_data.get('clazzid')[0],chapter_data.get('courseId')[0],chapter_data.get('chapterId')[0],class_cpi,num)
+            class_headers={
+            'Cookie':cookieStr,
+            'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+            }
+            medias_rsp=requests.get(url=medias_url,headers=class_headers)
+            medias_HTML=etree.HTML(medias_rsp.text)
+            medias_text=medias_HTML.xpath("//script[1]/text()")[0]
+            import re,json
+            pattern = re.compile(r'attachments":([\s\S]*),"defaults"') 
+            re_result=re.findall(pattern,medias_text)[0]
+            reportUrl=re.findall(r'reportUrl":([\s\S]*),"chapterCapture"',medias_text)[0]
+            reportUrl=reportUrl.replace("\"","")
+            result_json=json.loads(re_result)
+            for video_item in result_json:
+                if video_item.get("isPassed") == True:
+                    pass
+                else:
+                    if video_item.get("type") == "video":
+                        objectId=video_item.get("objectId")
+                        otherInfo=video_item.get("otherInfo")
+                        jobid=video_item.get("jobid")
+                        name=video_item.get('property').get('name')
+                        status_url="https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(objectId)
+                        status_rsp=requests.get(url=status_url,headers=class_headers)
+                        status_json=json.loads(status_rsp.text)
+                        duration=status_json.get('duration')
+                        dtoken=status_json.get('dtoken')
+                        print(objectId,otherInfo,jobid,uid,name,duration,reportUrl)
+                        multimedia_headers={
+                            'Accept':'*/*',
+                            'Accept-Encoding':'gzip, deflate, br',
+                            'Accept-Language':'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                            'Connection':'keep-alive',
+                            'Content-Type':'application/json',
+                            'Cookie':cookieStr,
+                            'Host':'mooc1-1.chaoxing.com',
+                            'Referer':'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
+                            'Sec-Fetch-Dest':'empty',
+                            'Sec-Fetch-Mode':'cors',
+                            'Sec-Fetch-Site':'same-origin',
+                            'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+                        }
+                        import time
+                        elses="/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=4&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken,chapter_data.get('clazzid')[0],duration,objectId,otherInfo,jobid,uid,encode_enc(chapter_data.get('clazzid')[0],duration,objectId,otherInfo,jobid,uid),int(time.time()*1000))
+                        reportUrl_item=reportUrl+str(elses)
+                        print(reportUrl_item)
+                        multimedia_rsp=requests.get(url=reportUrl_item,headers=multimedia_headers)
+                        print(multimedia_rsp.text)
 class Things():
     def __init__(self, username='nobody'):
         self.username = username
