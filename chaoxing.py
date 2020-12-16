@@ -254,17 +254,3 @@ if __name__ == "__main__":
     step_2()
     Menu().run()
 
-'''
-var isdrag = 0;
-    switch (evt) {
-    case "play":
-        isdrag = 3;
-        break;
-    case "pause":
-        isdrag = 2;
-        break;
-    case "ended":
-        isdrag = 4;
-        break
-'''
-
