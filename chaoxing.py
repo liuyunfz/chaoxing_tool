@@ -222,16 +222,18 @@ class Things():
         while break_loop == False:
             enter=input("输入你要完成的课程序号(输入q回退主菜单)：")
             try:
-                if int(enter) in range(1,len(course_dict)+1) :
-                    input("请确认您要完成'%s'"%(course_dict[int(enter)][0]))
-                    deal_course(course_dict[int(enter)][1])
-                    input("\n任务已完成，回车返回主菜单")
-                    break_loop=True
-                elif enter == "q":
+                if enter == "q":
                     break_loop=True
                     pass
                 else:
-                    print("'%s'并不是可识别的序号，请您重新检查后输入"%enter)
+                    try:
+                        input("请确认您要完成'%s'"%(course_dict[int(enter)][0]))  
+                    except:
+                        print("'%s'并不是可识别的序号，请您重新检查后输入"%enter)
+                        continue
+                    deal_course(course_dict[int(enter)][1])
+                    input("\n任务已完成，回车返回主菜单")
+                    break_loop=True
             except Exception as e:
                     print("error:%s"%e)
 
