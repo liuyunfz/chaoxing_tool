@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # _*_ coding:utf-8 _*_
 import requests,base64,os,sys,time
+import re,json
 from lxml import etree
 from urllib import parse
 def encode_enc(clazzid:str,duration:int,objectId:str,otherinfo:str,jobid:str,userid:str):
@@ -65,8 +66,6 @@ def step_2():
         global course_dict
         course_dict={}
         for class_item in class_HTML.xpath("/html/body/div/div[2]/div[3]/ul/li[@class='courseItem curFile']"):
-            #courseid=class_item.xpath("./input[@name='courseId']/@value")[0]
-            #classid=class_item.xpath("./input[@name='classId']/@value")[0]
             try:              
                 class_item_name=class_item.xpath("./div[2]/h3/a/@title")[0]
                 #等待开课的课程由于尚未对应链接，所有缺少a标签。
@@ -154,7 +153,6 @@ def deal_misson(missons:list,class_cpi:str):
             medias_rsp=requests.get(url=medias_url,headers=class_headers)
             medias_HTML=etree.HTML(medias_rsp.text)
             medias_text=medias_HTML.xpath("//script[1]/text()")[0]
-            import re,json
             pattern = re.compile(r'attachments":([\s\S]*),"defaults"') 
             re_result=re.findall(pattern,medias_text)[0]
             reportUrl=re.findall(r'reportUrl":([\s\S]*),"chapterCapture"',medias_text)[0]
@@ -207,9 +205,9 @@ class Things():
         if enter == "":
             print("开始处理课程中....\n")
             for course_item in course_dict:
-                print("开始处理'%s'..."%course_item[0])
-                deal_course(course_item[1])
-                print("'%s' 课程处理完成\n"%course_item[0])
+                print("开始处理'%s'..."%course_dict[course_item][0])
+                deal_course(course_dict[course_item][1])
+                print("'%s' 课程处理完成\n"%course_dict[course_item][0])
             print("所有课程处理完成，请手动登陆网站进行查看，如有疑问请联系作者。")
         else:
             pass
