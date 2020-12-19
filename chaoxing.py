@@ -180,6 +180,20 @@ def misson_video(objectId,otherInfo,jobid,name,reportUrl,clazzId):
     multimedia_rsp=requests.get(url=reportUrl_item,headers=multimedia_headers)
     print(multimedia_rsp.text)
 
+#处理live任务，核心为获取视频token
+def misson_live(streamName,jobid,vdoid,courseId,chapterId,clazzid):
+    src = 'https://live.chaoxing.com/courseLive/newpclive?streamName='+streamName+'&vdoid='+vdoid+'&width=630&height=530'+'&jobid='+jobid+'&userId={0}&knowledgeid={1}&ut=s&clazzid={2}&courseid={3}'.format(uid,chapterId,clazzid,courseId)
+    rsp=requests.get(url=src,headers=global_headers)
+    rsp_HTML=etree.HTML(rsp.text)
+    token_url=rsp_HTML.xpath("//iframe/@src")[0]
+    print(token_url)
+    token_result = parse.urlparse(token_url)
+    token_data=parse.parse_qs(token_result.query)
+    token=token_data.get("token")
+    finish_url="https://zhibo.chaoxing.com/live/saveCourseJob?courseId={0}&knowledgeId={1}&classId={2}&userId={3}&jobId={4}&token={5}".format(courseId,chapterId,clazzid,uid,jobid,token[0])
+    finish_rsp=requests.get(url=finish_url,headers=global_headers)
+    print(finish_rsp.text)
+
 #处理任务
 def deal_misson(missons:list,class_cpi:str):
     for chapter_mission_item in missons:
@@ -200,16 +214,20 @@ def deal_misson(missons:list,class_cpi:str):
             reportUrl=re.findall(r'reportUrl":([\s\S]*),"chapterCapture"',medias_text)[0]
             reportUrl=reportUrl.replace("\"","")    
             for media_item in result_json:
-                print(media_item.get("type"))
-                if media_item.get("type") == "video":
+                media_type=media_item.get("type")
+                jobid=media_item.get("jobid")
+                if media_type == "video":
                     if media_item.get("isPassed") == True:
                         pass
                     else:
                         objectId=media_item.get("objectId")
                         otherInfo=media_item.get("otherInfo")
-                        jobid=media_item.get("jobid")
                         name=media_item.get('property').get('name')
                         misson_video(objectId=objectId,otherInfo=otherInfo,jobid=jobid,name=name,reportUrl=reportUrl,clazzId=clazzId)
+                elif media_type == "live":
+                    streamName=media_item.get("property").get("streamName")
+                    vdoid=media_item.get("property").get("vdoid")
+                    misson_live(streamName,jobid,vdoid,courseId,chapterId,clazzId)
                         
 
 #自定义任务类，处理菜单任务
@@ -275,8 +293,8 @@ class Menu():
     def display_menu(self):
         print("""
 菜单：
-1.一键完成所有课程视频
-2.完成单个课程中的所有视频
+1.一键完成所有课程中的视频任务
+2.完成单个课程中的所有任务节点（目前仅支持视频与直播类型）
 3.退出当前账号，重新登陆
 4.退出本程序
         """)
