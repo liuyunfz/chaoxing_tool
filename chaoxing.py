@@ -4,11 +4,15 @@ import requests,base64,os,sys,time
 import re,json
 from lxml import etree
 from urllib import parse
+
+#视频任务enc校验计算
 def encode_enc(clazzid:str,duration:int,objectId:str,otherinfo:str,jobid:str,userid:str):
     import hashlib
     data="[{0}][{1}][{2}][{3}][{4}][{5}][{6}][0_{7}]".format(clazzid,userid,jobid,objectId,duration*1000,"d_yHJ!$pdA~5",duration*1000,duration)
     print(data)
     return hashlib.md5(data.encode()).hexdigest()
+
+#手机号登录，返回response
 def sign_in(uname:str,password:str):
     sign_in_url="https://passport2.chaoxing.com/fanyalogin"
     sign_in_data="fid=314&uname={0}&password={1}&refer=http%253A%252F%252Fi.mooc.chaoxing.com&t=true".format(uname,base64.b64encode(password.encode("utf-8")).decode("utf-8"))
@@ -31,6 +35,8 @@ def sign_in(uname:str,password:str):
     }
     sign_in_rsp=requests.post(url=sign_in_url,data=sign_in_data,headers=sign_in_headers)
     return sign_in_rsp
+
+#任务1：用户登录，并合并cookie
 def step_1():
     sign_sus=False
     while sign_sus==False :
@@ -46,18 +52,20 @@ def step_1():
         else:
             sign_sus=True
             print("登陆成功，正在处理您的数据...")           
-    global cookieStr,uid
+    global cookieStr,uid,global_headers
     uid=sign_in_rsp.cookies['_uid']
     cookieStr = '' 
     for item in sign_in_rsp.cookies:
         cookieStr = cookieStr + item.name + '=' + item.value + ';'
-def step_2():
-    class_url="http://mooc1-2.chaoxing.com/visit/courses"
-    class_headers={
+    global_headers={
         'Cookie':cookieStr,
         'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
     }
-    class_rsp=requests.get(url=class_url,headers=class_headers)
+
+#任务2：课程读取，并输出课程信息
+def step_2():
+    class_url="http://mooc1-2.chaoxing.com/visit/courses"
+    class_rsp=requests.get(url=class_url,headers=global_headers)
     if class_rsp.status_code==200:
         class_HTML=etree.HTML(class_rsp.text)
         os.system("cls")
@@ -68,7 +76,7 @@ def step_2():
         for class_item in class_HTML.xpath("/html/body/div/div[2]/div[3]/ul/li[@class='courseItem curFile']"):
             try:              
                 class_item_name=class_item.xpath("./div[2]/h3/a/@title")[0]
-                #等待开课的课程由于尚未对应链接，所有缺少a标签。
+                #等待开课的课程由于尚未对应链接，所以缺少a标签。
                 i+=1
                 print(class_item_name)
                 course_dict[i]=[class_item_name,"https://mooc1-2.chaoxing.com{}".format(class_item.xpath("./div[1]/a[1]/@href")[0])]
@@ -78,6 +86,8 @@ def step_2():
     else:
         print("课程处理失败，请联系作者")
     #print(course_dict)
+
+#处理课程地址，获取重定向的新地址，并读取有任务点的章节
 def deal_course(url:str):
     course_302_url=url
     course_headers={
@@ -116,6 +126,8 @@ def deal_course(url:str):
     result = parse.urlparse(new_url)
     new_url_data=parse.parse_qs(result.query)
     deal_misson(chapter_mission,new_url_data.get("cpi")[0])
+
+#读取章节页数
 def read_cardcount(courseId:str,clazzid:str,chapterId:str,cpi:str):
     url='https://mooc1-2.chaoxing.com/mycourse/studentstudyAjax'
     headers={
@@ -139,60 +151,68 @@ def read_cardcount(courseId:str,clazzid:str,chapterId:str,cpi:str):
     rsp=requests.post(url=url,headers=headers,data=data)
     rsp_HTML=etree.HTML(rsp.text)
     return rsp_HTML.xpath("//input[@id='cardcount']/@value")[0]
+
+#处理video任务,校验为enc
+def misson_video(objectId,otherInfo,jobid,name,reportUrl,clazzId):
+    status_url="https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(objectId)
+    status_rsp=requests.get(url=status_url,headers=global_headers)
+    status_json=json.loads(status_rsp.text)
+    duration=status_json.get('duration')
+    dtoken=status_json.get('dtoken')
+    print(objectId,otherInfo,jobid,uid,name,duration,reportUrl)
+    multimedia_headers={
+        'Accept':'*/*',
+        'Accept-Encoding':'gzip, deflate, br',
+        'Accept-Language':'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Connection':'keep-alive',
+        'Content-Type':'application/json',
+        'Cookie':cookieStr,
+        'Host':'mooc1-1.chaoxing.com',
+        'Referer':'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
+        'Sec-Fetch-Dest':'empty',
+        'Sec-Fetch-Mode':'cors',
+        'Sec-Fetch-Site':'same-origin',
+        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+    }
+    import time
+    elses="/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=4&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken,clazzId,duration,objectId,otherInfo,jobid,uid,encode_enc(clazzId,duration,objectId,otherInfo,jobid,uid),int(time.time()*1000))
+    reportUrl_item=reportUrl+str(elses)
+    multimedia_rsp=requests.get(url=reportUrl_item,headers=multimedia_headers)
+    print(multimedia_rsp.text)
+
+#处理任务
 def deal_misson(missons:list,class_cpi:str):
     for chapter_mission_item in missons:
         result = parse.urlparse(chapter_mission_item)
         chapter_data=parse.parse_qs(result.query)
-        for num in range(int(read_cardcount(chapter_data.get('courseId')[0],chapter_data.get('clazzid')[0],chapter_data.get('chapterId')[0],class_cpi))):
+        clazzId=chapter_data.get('clazzid')[0]
+        courseId=chapter_data.get('courseId')[0]
+        chapterId=chapter_data.get('chapterId')[0]
+        for num in range(int(read_cardcount(courseId,clazzId,chapterId,class_cpi))):
             print("num:",num)
-            medias_url="https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(chapter_data.get('clazzid')[0],chapter_data.get('courseId')[0],chapter_data.get('chapterId')[0],class_cpi,num)
-            class_headers={
-            'Cookie':cookieStr,
-            'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
-            }
-            medias_rsp=requests.get(url=medias_url,headers=class_headers)
+            medias_url="https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId,courseId,chapterId,class_cpi,num)
+            medias_rsp=requests.get(url=medias_url,headers=global_headers)
             medias_HTML=etree.HTML(medias_rsp.text)
             medias_text=medias_HTML.xpath("//script[1]/text()")[0]
             pattern = re.compile(r'attachments":([\s\S]*),"defaults"') 
             re_result=re.findall(pattern,medias_text)[0]
-            reportUrl=re.findall(r'reportUrl":([\s\S]*),"chapterCapture"',medias_text)[0]
-            reportUrl=reportUrl.replace("\"","")
             result_json=json.loads(re_result)
-            for video_item in result_json:
-                if video_item.get("isPassed") == True:
-                    pass
-                else:
-                    if video_item.get("type") == "video":
-                        objectId=video_item.get("objectId")
-                        otherInfo=video_item.get("otherInfo")
-                        jobid=video_item.get("jobid")
-                        name=video_item.get('property').get('name')
-                        status_url="https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(objectId)
-                        status_rsp=requests.get(url=status_url,headers=class_headers)
-                        status_json=json.loads(status_rsp.text)
-                        duration=status_json.get('duration')
-                        dtoken=status_json.get('dtoken')
-                        print(objectId,otherInfo,jobid,uid,name,duration,reportUrl)
-                        multimedia_headers={
-                            'Accept':'*/*',
-                            'Accept-Encoding':'gzip, deflate, br',
-                            'Accept-Language':'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-                            'Connection':'keep-alive',
-                            'Content-Type':'application/json',
-                            'Cookie':cookieStr,
-                            'Host':'mooc1-1.chaoxing.com',
-                            'Referer':'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
-                            'Sec-Fetch-Dest':'empty',
-                            'Sec-Fetch-Mode':'cors',
-                            'Sec-Fetch-Site':'same-origin',
-                            'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
-                        }
-                        import time
-                        elses="/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=4&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken,chapter_data.get('clazzid')[0],duration,objectId,otherInfo,jobid,uid,encode_enc(chapter_data.get('clazzid')[0],duration,objectId,otherInfo,jobid,uid),int(time.time()*1000))
-                        reportUrl_item=reportUrl+str(elses)
-                        print(reportUrl_item)
-                        multimedia_rsp=requests.get(url=reportUrl_item,headers=multimedia_headers)
-                        print(multimedia_rsp.text)
+            reportUrl=re.findall(r'reportUrl":([\s\S]*),"chapterCapture"',medias_text)[0]
+            reportUrl=reportUrl.replace("\"","")    
+            for media_item in result_json:
+                print(media_item.get("type"))
+                if media_item.get("type") == "video":
+                    if media_item.get("isPassed") == True:
+                        pass
+                    else:
+                        objectId=media_item.get("objectId")
+                        otherInfo=media_item.get("otherInfo")
+                        jobid=media_item.get("jobid")
+                        name=media_item.get('property').get('name')
+                        misson_video(objectId=objectId,otherInfo=otherInfo,jobid=jobid,name=name,reportUrl=reportUrl,clazzId=clazzId)
+                        
+
+#自定义任务类，处理菜单任务
 class Things():
     def __init__(self, username='nobody'):
         self.username = username
