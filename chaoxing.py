@@ -87,9 +87,16 @@ def step_2():
         print("课程处理失败，请联系作者")
     #print(course_dict)
 
+#获取url重定向后的新地址
+def url_302(oldUrl:str):
+    #302跳转，requests库默认追踪headers里的location进行跳转，使用allow_redirects=False
+    course_302_rsp=requests.get(url=oldUrl,headers=global_headers,allow_redirects=False)
+    new_url=course_302_rsp.headers['Location']
+    return new_url
+
 #处理课程地址，获取重定向的新地址，并读取有任务点的章节
 def deal_course(url:str):
-    course_302_url=url
+    new_url=url_302(url)
     course_headers={
         'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
         'Accept-Encoding':'gzip, deflate, br',
@@ -103,9 +110,6 @@ def deal_course(url:str):
         'Upgrade-Insecure-Requests':'1',
         'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
     }
-    #302跳转，requests库默认追踪headers里的location进行跳转，使用allow_redirects=False
-    course_302_rsp=requests.get(url=course_302_url,headers=course_headers,allow_redirects=False)
-    new_url=course_302_rsp.headers['Location']
     course_rsp=requests.get(url=new_url,headers=course_headers)
     course_HTML=etree.HTML(course_rsp.text)
     #为防止账号没有课程或没有班级，需要后期在xpath获取加入try，以防报错
@@ -194,6 +198,14 @@ def misson_live(streamName,jobid,vdoid,courseId,chapterId,clazzid):
     finish_rsp=requests.get(url=finish_url,headers=global_headers)
     print(finish_rsp.text)
 
+#课程学习次数
+def set_log(course_url:str):
+    course_rsp=requests.get(url=url_302(course_url),headers=global_headers)
+    course_HTML=etree.HTML(course_rsp.text)
+    log_url=course_HTML.xpath("/html/body/script[14]/@src")[0]
+    rsp=requests.get(url=log_url,headers=global_headers)
+    print(rsp.text)
+
 #处理任务
 def deal_misson(missons:list,class_cpi:str):
     for chapter_mission_item in missons:
@@ -274,6 +286,35 @@ class Things():
                     print("error:%s"%e)
 
     def misson_3(self):
+        os.system("cls")
+        print("您所加入的课程如下：")
+        for i in range(len(course_dict)):
+            print("%d.%s"%(i+1,course_dict[i+1][0]))       
+        break_loop=False
+        while break_loop == False:
+            enter=input("输入你要刷取学习次数的课程序号(输入q回退主菜单)：")
+            try:
+                if enter == "q":
+                    break_loop=True
+                    pass
+                else:
+                    try:
+                        count=int(input("请输入您要刷取'%s' 的学习次数："%(course_dict[int(enter)][0])))
+                    except:
+                        print("错误输入\n")
+                        continue
+                    try:                
+                        for num in range(count):
+                            set_log(course_dict[int(enter)][1])
+                        input("\n任务已完成，回车返回主菜单")
+                        break_loop=True
+                    except Exception as e:
+                        print(e)
+                        
+            except Exception as e:
+                    print("error:%s"%e)
+
+    def misson_4(self):
         step_1()
         step_2()
         Menu().run()
@@ -287,7 +328,8 @@ class Menu():
             "1": self.thing.misson_1,
             "2": self.thing.misson_2,
             "3": self.thing.misson_3,
-            "4": self.quit
+            "4": self.thing.misson_4,
+            "5": self.quit
         }
 
     def display_menu(self):
@@ -295,8 +337,9 @@ class Menu():
 菜单：
 1.一键完成所有课程中的视频任务
 2.完成单个课程中的所有任务节点（目前仅支持视频与直播类型）
-3.退出当前账号，重新登陆
-4.退出本程序
+3.刷取课程学习次数
+4.退出当前账号，重新登陆
+5.退出本程序
         """)
 
     def run(self):
