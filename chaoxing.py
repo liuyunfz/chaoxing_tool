@@ -198,6 +198,26 @@ def misson_live(streamName,jobid,vdoid,courseId,chapterId,clazzid):
     finish_rsp=requests.get(url=finish_url,headers=global_headers)
     print(finish_rsp.text)
 
+#处理document任务，核心为jtoken
+def misson_doucument(jobid,chapterId,courseid,clazzid,jtoken):  
+    multimedia_headers={
+        'Accept':'*/*',
+        'Accept-Encoding':'gzip, deflate, br',
+        'Accept-Language':'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Connection':'keep-alive',
+        'Cookie':cookieStr,
+        'Host':'mooc1-2.chaoxing.com',
+        'Referer':'https://mooc1-2.chaoxing.com/ananas/modules/pdf/index.html?v=2020-1103-1706',
+        'Sec-Fetch-Dest':'empty',
+        'Sec-Fetch-Mode':'cors',
+        'Sec-Fetch-Site':'same-origin',
+        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36 Edg/87.0.664.52',
+        'X-Requested-With':'XMLHttpRequest'
+    }
+    url='https://mooc1-2.chaoxing.com/ananas/job/document?jobid={0}&knowledgeid={1}&courseid={2}&clazzid={3}&jtoken={4}&_dc=1607066762782'.format(jobid,chapterId,courseid,clazzid,jtoken)
+    multimedia_rsp=requests.get(url=url,headers=multimedia_headers)
+    print(multimedia_rsp.text)
+
 #课程学习次数
 def set_log(course_url:str):
     course_rsp=requests.get(url=url_302(course_url),headers=global_headers)
@@ -240,6 +260,9 @@ def deal_misson(missons:list,class_cpi:str):
                     streamName=media_item.get("property").get("streamName")
                     vdoid=media_item.get("property").get("vdoid")
                     misson_live(streamName,jobid,vdoid,courseId,chapterId,clazzId)
+                elif media_type == "document":
+                    jtoken=media_item.get("jtoken")
+                    misson_doucument(jobid,chapterId,courseId,clazzId,jtoken)
                         
 
 #自定义任务类，处理菜单任务
@@ -336,7 +359,7 @@ class Menu():
         print("""
 菜单：
 1.一键完成所有课程中的视频任务
-2.完成单个课程中的所有任务节点（目前仅支持视频与直播类型）
+2.完成单个课程中的所有任务节点（目前仅支持视频,直播与图书类型）
 3.刷取课程学习次数
 4.退出当前账号，重新登陆
 5.退出本程序
