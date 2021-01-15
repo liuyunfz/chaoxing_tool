@@ -284,8 +284,8 @@ def deal_misson(missons:list,class_cpi:str):
                     jtoken=media_item.get("jtoken")
                     misson_doucument(jobid,chapterId,courseId,clazzId,jtoken)
                 elif "bookname" in media_item["property"]:
-                                jtoken=media_item.get("jtoken")
-                                misson_book(jobid,chapterId,courseId,clazzId,jtoken)                  
+                    jtoken=media_item.get("jtoken")
+                    misson_book(jobid,chapterId,courseId,clazzId,jtoken)
 
 #自定义任务类，处理菜单任务
 class Things():
@@ -311,12 +311,11 @@ class Things():
         print("您所加入的课程如下：")
         for i in range(len(course_dict)):
             print("%d.%s"%(i+1,course_dict[i+1][0]))       
-        break_loop=False
-        while break_loop == False:
+        while True:
             enter=input("输入你要完成的课程序号(输入q回退主菜单)：")
             try:
                 if enter == "q":
-                    break_loop=True
+                    break
                     pass
                 else:
                     try:
@@ -326,7 +325,7 @@ class Things():
                         continue
                     deal_course(course_dict[int(enter)][1])
                     input("\n任务已完成，回车返回主菜单")
-                    break_loop=True
+                    break
             except Exception as e:
                     print("error:%s"%e)
 
@@ -335,13 +334,11 @@ class Things():
         print("您所加入的课程如下：")
         for i in range(len(course_dict)):
             print("%d.%s"%(i+1,course_dict[i+1][0]))       
-        break_loop=False
-        while break_loop == False:
+        while True:
             enter=input("输入你要刷取学习次数的课程序号(输入q回退主菜单)：")
             try:
                 if enter == "q":
-                    break_loop=True
-                    pass
+                    break
                 else:
                     try:
                         count=int(input("请输入您要刷取'%s' 的学习次数："%(course_dict[int(enter)][0])))
@@ -352,7 +349,7 @@ class Things():
                         for num in range(count):
                             set_log(course_dict[int(enter)][1])
                         input("\n任务已完成，回车返回主菜单")
-                        break_loop=True
+                        break
                     except Exception as e:
                         print(e)
                         
