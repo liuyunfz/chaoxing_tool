@@ -242,7 +242,7 @@ def misson_book(jobid,chapterId,courseid,clazzid,jtoken):
 def set_log(course_url:str):
     course_rsp=requests.get(url=url_302(course_url),headers=global_headers)
     course_HTML=etree.HTML(course_rsp.text)
-    log_url=course_HTML.xpath("/html/body/script[14]/@src")[0]
+    log_url=course_HTML.xpath("/html/body/script[11]/@src")[0]
     rsp=requests.get(url=log_url,headers=global_headers)
     print(rsp.text)
 
@@ -316,7 +316,6 @@ class Things():
             try:
                 if enter == "q":
                     break
-                    pass
                 else:
                     try:
                         input("请确认您要完成'%s'"%(course_dict[int(enter)][0]))  
