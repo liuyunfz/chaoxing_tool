@@ -87,16 +87,22 @@ def step_2():
         print("课程处理失败，请联系作者")
     #print(course_dict)
 
-#获取url重定向后的新地址
+#获取url重定向后的新地址与cpi
 def url_302(oldUrl:str):
     #302跳转，requests库默认追踪headers里的location进行跳转，使用allow_redirects=False
     course_302_rsp=requests.get(url=oldUrl,headers=global_headers,allow_redirects=False)
     new_url=course_302_rsp.headers['Location']
-    return new_url
+    result = parse.urlparse(new_url)
+    new_url_data=parse.parse_qs(result.query)
+    try:
+        cpi=new_url_data.get("cpi")[0]
+    except:
+        print("fail to get cpi")
+        cpi=None
+    return {"new_url":new_url,"cpi":cpi}
 
-#处理课程地址，获取重定向的新地址，并读取有任务点的章节
-def deal_course(url:str):
-    new_url=url_302(url)
+#获取所有课程信息
+def course_get(url:str): 
     course_headers={
         'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
         'Accept-Encoding':'gzip, deflate, br',
@@ -110,14 +116,23 @@ def deal_course(url:str):
         'Upgrade-Insecure-Requests':'1',
         'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
     }
-    course_rsp=requests.get(url=new_url,headers=course_headers)
+    course_rsp=requests.get(url=url,headers=course_headers)
     course_HTML=etree.HTML(course_rsp.text)
+    return course_HTML
+
+#选取有任务点的课程,并处理
+def deal_course_select(url_class):
+    new_url_dict=url_302(url_class)
+    new_url=new_url_dict["new_url"]
+    course_HTML=course_get(new_url)
     #为防止账号没有课程或没有班级，需要后期在xpath获取加入try，以防报错
     chapter_mission=[]
     try:
-        for course_unit in course_HTML.xpath("/html/body/div[5]/div[1]/div[2]/div[3]/div"):
+        course_unit_list=course_HTML.xpath("//div[@class='units']")
+        for course_unit in course_unit_list:
             print(course_unit.xpath("./h2/a/@title")[0])
-            for chapter_item in course_unit.xpath("./div"):
+            chapter_item_list=course_unit.xpath("./div")
+            for chapter_item in chapter_item_list:
                 chapter_status=chapter_item.xpath("./h3/span[@class='icon']/em/@class")[0]
                 if chapter_status == "orange":
                     print("----",chapter_item.xpath("./h3/span[@class='articlename']/a/@title")[0],"      ",chapter_item.xpath("./h3/span[@class='icon']/em/text()")[0])
@@ -127,9 +142,36 @@ def deal_course(url:str):
     except:
         pass
     print("课程读取完成，共有%d个章节可一键完成"%len(chapter_mission))
-    result = parse.urlparse(new_url)
-    new_url_data=parse.parse_qs(result.query)
-    deal_misson(chapter_mission,new_url_data.get("cpi")[0])
+    deal_misson(chapter_mission,new_url_dict["cpi"],0)
+
+#获取所有的课程信息，并储存url
+def deal_course_all(url_class):
+    new_url_dict=url_302(url_class)
+    new_url=new_url_dict["new_url"]
+    course_HTML=course_get(new_url)
+    i=0
+    chapter_list=[]
+    course_unit_list=course_HTML.xpath("//div[@class='units']")#课程中的大章节
+    try:
+        for course_unit in course_unit_list:
+            chapter_item_list=course_unit.xpath("./div")
+            for chapter_item in chapter_item_list:
+                i=i+1          
+                try:
+                    print(i,".",chapter_item.xpath("./h3/span[@class='articlename']/a/@title")[0])
+                    chapter_list.append("https://mooc1-2.chaoxing.com{}".format(chapter_item.xpath("./h3/span[@class='articlename']/a/@href")[0]))
+                except Exception as e:
+                    print("chapter处理错误",e)
+    except Exception as e:
+        print(e)
+    while True:
+        enter=input("请输入资源所在章节的序号：")
+        try:
+            url_chapter=chapter_list[int(enter)-1]         
+            deal_misson([url_chapter],new_url_dict["cpi"],1)
+            break
+        except Exception as e:
+            print("'%s'不是可识别的输入，请重新输入"%enter)
 
 #读取章节页数
 def read_cardcount(courseId:str,clazzid:str,chapterId:str,cpi:str):
@@ -240,21 +282,22 @@ def misson_book(jobid,chapterId,courseid,clazzid,jtoken):
 
 #课程学习次数
 def set_log(course_url:str):
-    course_rsp=requests.get(url=url_302(course_url),headers=global_headers)
+    course_rsp=requests.get(url=url_302(course_url)["new_url"],headers=global_headers)
     course_HTML=etree.HTML(course_rsp.text)
     log_url=course_HTML.xpath("/html/body/script[11]/@src")[0]
     rsp=requests.get(url=log_url,headers=global_headers)
     print(rsp.text)
 
 #处理任务
-def deal_misson(missons:list,class_cpi:str):
+def deal_misson(missons:list,class_cpi:str,mode:int):
     for chapter_mission_item in missons:
         result = parse.urlparse(chapter_mission_item)
         chapter_data=parse.parse_qs(result.query)
         clazzId=chapter_data.get('clazzid')[0]
         courseId=chapter_data.get('courseId')[0]
         chapterId=chapter_data.get('chapterId')[0]
-        for num in range(int(read_cardcount(courseId,clazzId,chapterId,class_cpi))):
+        cardcount=int(read_cardcount(courseId,clazzId,chapterId,class_cpi))
+        for num in range(cardcount):
             print("num:",num)
             medias_url="https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId,courseId,chapterId,class_cpi,num)
             medias_rsp=requests.get(url=medias_url,headers=global_headers)
@@ -264,28 +307,75 @@ def deal_misson(missons:list,class_cpi:str):
             re_result=re.findall(pattern,medias_text)[0]
             result_json=json.loads(re_result)
             reportUrl=re.findall(r'reportUrl":([\s\S]*),"chapterCapture"',medias_text)[0]
-            reportUrl=reportUrl.replace("\"","")    
-            for media_item in result_json:
-                media_type=media_item.get("type")
-                jobid=media_item.get("jobid")
-                if media_type == "video":
-                    if media_item.get("isPassed") == True:
-                        pass
-                    else:
-                        objectId=media_item.get("objectId")
-                        otherInfo=media_item.get("otherInfo")
-                        name=media_item.get('property').get('name')
-                        misson_video(objectId=objectId,otherInfo=otherInfo,jobid=jobid,name=name,reportUrl=reportUrl,clazzId=clazzId)
-                elif media_type == "live":
-                    streamName=media_item.get("property").get("streamName")
-                    vdoid=media_item.get("property").get("vdoid")
-                    misson_live(streamName,jobid,vdoid,courseId,chapterId,clazzId)
-                elif media_type == "document":
-                    jtoken=media_item.get("jtoken")
-                    misson_doucument(jobid,chapterId,courseId,clazzId,jtoken)
-                elif "bookname" in media_item["property"]:
-                    jtoken=media_item.get("jtoken")
-                    misson_book(jobid,chapterId,courseId,clazzId,jtoken)
+            reportUrl=reportUrl.replace("\"","")
+            if mode == 0 :
+                #mode 0 deal misson
+                medias_deal(result_json,reportUrl,clazzId,chapterId,courseId)
+            else :
+                #mode 1 download medias
+                medias_download(result_json)
+
+#判断媒体类型并处理
+def medias_deal(result_json,reportUrl,clazzId,chapterId,courseId):
+    for media_item in result_json:
+        media_type=media_item.get("type")
+        jobid=media_item.get("jobid")
+        if media_type == "video":
+            if media_item.get("isPassed") == True:
+                pass
+            else:
+                objectId=media_item.get("objectId")
+                otherInfo=media_item.get("otherInfo")
+                name=media_item.get('property').get('name')
+                misson_video(objectId=objectId,otherInfo=otherInfo,jobid=jobid,name=name,reportUrl=reportUrl,clazzId=clazzId)
+        elif media_type == "live":
+            streamName=media_item.get("property").get("streamName")
+            vdoid=media_item.get("property").get("vdoid")
+            misson_live(streamName,jobid,vdoid,courseId,chapterId,clazzId)
+        elif media_type == "document":
+            jtoken=media_item.get("jtoken")
+            misson_doucument(jobid,chapterId,courseId,clazzId,jtoken)
+        elif "bookname" in media_item["property"]:
+            jtoken=media_item.get("jtoken")
+            misson_book(jobid,chapterId,courseId,clazzId,jtoken)
+
+#下载媒体
+def medias_download(medias):
+    downloads_dict={}
+    i=0
+    for media_item in medias:
+        objectid=media_item.get("property").get("objectid")
+        if objectid == None:
+            continue
+        status_rsp=requests.get(url="https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(objectid),headers=global_headers)
+        status_json=json.loads(status_rsp.text)
+        filename=status_json.get('filename')
+        download=status_json.get('download')
+        i+=1
+        downloads_dict[i]=[filename,download]
+        print(i,".       ",filename)
+    if downloads_dict == {} :
+        print("所在章节无可下载的资源")
+        return False
+    enter=input("请输入你要下载资源的序号，以逗号分隔：")
+    enter_list=enter.split(",")
+    for media_index in enter_list:
+        try:
+            with open(downloads_dict[int(media_index)][0],"wb") as f :
+                print("\n正在下载%s..."%downloads_dict[int(media_index)][0])
+                f.write(requests.get(url=downloads_dict[int(media_index)][1],headers=global_headers).content)
+                print("\n下载完成")
+                f.close()
+        except OSError :
+            new_name=str(int(time.time()))+os.path.splitext(downloads_dict[int(media_index)][0])[-1]
+            print("由于windows不允许文件包含特殊字符，已将文件重命名为 %s"%new_name)
+            with open(new_name,"wb") as f :
+                print("\n正在下载%s..."%new_name)
+                f.write(requests.get(url=downloads_dict[int(media_index)][1],headers=global_headers).content)
+                print("\n下载完成")
+                f.close()
+        except Exception as e :
+            print("文件下载错误：",e)
 
 #自定义任务类，处理菜单任务
 class Things():
@@ -301,11 +391,12 @@ class Things():
             print("开始处理课程中....\n")
             for course_item in course_dict:
                 print("开始处理'%s'..."%course_dict[course_item][0])
-                deal_course(course_dict[course_item][1])
+                deal_course_select(course_dict[course_item][1])
                 print("'%s' 课程处理完成\n"%course_dict[course_item][0])
             print("所有课程处理完成，请手动登陆网站进行查看，如有疑问请联系作者。")
         else:
             pass
+    
     def misson_2(self):
         os.system("cls")
         print("您所加入的课程如下：")
@@ -322,13 +413,34 @@ class Things():
                     except:
                         print("'%s'并不是可识别的序号，请您重新检查后输入"%enter)
                         continue
-                    deal_course(course_dict[int(enter)][1])
+                    deal_course_select(course_dict[int(enter)][1])
                     input("\n任务已完成，回车返回主菜单")
                     break
             except Exception as e:
                     print("error:%s"%e)
 
     def misson_3(self):
+        os.system("cls")
+        print("您所加入的课程如下：")
+        for i in range(len(course_dict)):
+            print("%d.%s"%(i+1,course_dict[i+1][0]))       
+        while True:
+            enter=input("请输入你要下载资源的课程序号(输入q回退主菜单)：")
+            try:
+                if enter == "q":
+                    break
+                else:
+                    try:
+                        deal_course_all(course_dict[int(enter)][1])
+                    except:
+                        print("'%s'并不是可识别的序号，请您重新检查后输入"%enter)
+                        continue
+                    input("\n任务已完成，回车返回主菜单")
+                    break
+            except Exception as e:
+                    print("error:%s"%e)
+
+    def misson_4(self):
         os.system("cls")
         print("您所加入的课程如下：")
         for i in range(len(course_dict)):
@@ -350,17 +462,16 @@ class Things():
                         input("\n任务已完成，回车返回主菜单")
                         break
                     except Exception as e:
-                        print(e)
-                        
+                        print(e)                      
             except Exception as e:
                     print("error:%s"%e)
 
-    def misson_4(self):
+    def misson_5(self):
+        os.system("cls")
+
+    def misson_6(self):
         step_1()
         step_2()
-        Menu().run()
-
-
 
 class Menu():
     def __init__(self):
@@ -370,17 +481,21 @@ class Menu():
             "2": self.thing.misson_2,
             "3": self.thing.misson_3,
             "4": self.thing.misson_4,
-            "5": self.quit
+            "5": self.thing.misson_5,
+            "6": self.thing.misson_6,
+            "7": self.quit
         }
 
     def display_menu(self):
         print("""
 菜单：
-1.一键完成所有课程中的视频任务
-2.完成单个课程中的所有任务节点（目前仅支持视频,直播与图书类型）
-3.刷取课程学习次数
-4.退出当前账号，重新登陆
-5.退出本程序
+1.一键完成所有课程中的任务节点(不包含测验)
+2.完成单个课程中的所有任务节点(不包含测验)
+3.下载课程资源(mp4,pdf,pptx,png等)
+4.刷取课程学习次数
+5.清除日志
+6.退出当前账号，重新登陆
+7.退出本程序
         """)
 
     def run(self):
