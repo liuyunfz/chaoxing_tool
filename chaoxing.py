@@ -363,7 +363,14 @@ def medias_download(medias):
         try:
             with open(downloads_dict[int(media_index)][0],"wb") as f :
                 print("\n正在下载%s..."%downloads_dict[int(media_index)][0])
-                f.write(requests.get(url=downloads_dict[int(media_index)][1],headers=global_headers).content)
+                rsp=requests.get(url=downloads_dict[int(media_index)][1],headers=global_headers,stream=True)
+                length_already=0
+                length_all=int(rsp.headers['content-length'])
+                for chunk in rsp.iter_content(chunk_size=5242880) :
+                    if chunk :
+                        length_already+=len(chunk)
+                        print("\r下载进度：%d%%"%int(length_already/length_all*100),end="",flush=True)                 
+                        f.write(chunk)
                 print("\n下载完成")
                 f.close()
         except OSError :
@@ -371,7 +378,13 @@ def medias_download(medias):
             print("由于windows不允许文件包含特殊字符，已将文件重命名为 %s"%new_name)
             with open(new_name,"wb") as f :
                 print("\n正在下载%s..."%new_name)
-                f.write(requests.get(url=downloads_dict[int(media_index)][1],headers=global_headers).content)
+                length_already=0
+                length_all=int(rsp.headers['content-length'])
+                for chunk in rsp.iter_content(chunk_size=5242880) :
+                    if chunk :
+                        length_already+=len(chunk)
+                        print("\r下载进度：%d%%"%int(length_already/length_all*100),end="",flush=True)                 
+                        f.write(chunk)
                 print("\n下载完成")
                 f.close()
         except Exception as e :
