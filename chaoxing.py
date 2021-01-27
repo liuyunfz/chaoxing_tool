@@ -318,16 +318,15 @@ def deal_misson(missons:list,class_cpi:str,mode:int):
 #判断媒体类型并处理
 def medias_deal(result_json,reportUrl,clazzId,chapterId,courseId):
     for media_item in result_json:
+        if media_item.get("job") == None :
+            continue
         media_type=media_item.get("type")
         jobid=media_item.get("jobid")
         if media_type == "video":
-            if media_item.get("isPassed") == True:
-                pass
-            else:
-                objectId=media_item.get("objectId")
-                otherInfo=media_item.get("otherInfo")
-                name=media_item.get('property').get('name')
-                misson_video(objectId=objectId,otherInfo=otherInfo,jobid=jobid,name=name,reportUrl=reportUrl,clazzId=clazzId)
+            objectId=media_item.get("objectId")
+            otherInfo=media_item.get("otherInfo")
+            name=media_item.get('property').get('name')
+            misson_video(objectId=objectId,otherInfo=otherInfo,jobid=jobid,name=name,reportUrl=reportUrl,clazzId=clazzId)
         elif media_type == "live":
             streamName=media_item.get("property").get("streamName")
             vdoid=media_item.get("property").get("vdoid")
