@@ -407,6 +407,12 @@ def medias_download(medias):
         except Exception as e :
             print("文件下载错误：",e)
 
+def __list_get(list:list):
+    if len(list):
+        return list[0]
+    else :
+        return ""
+        
 #自定义任务类，处理菜单任务
 class Things():
     def __init__(self, username='nobody'):
