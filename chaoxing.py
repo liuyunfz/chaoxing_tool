@@ -47,7 +47,7 @@ def step_1():
         sign_in_rsp=sign_in(uname,password)
         sign_in_json=sign_in_rsp.json()
         if sign_in_json['status'] == False:
-            print(sign_in_json['msg2'],"\n\n请按回车重新键入账号数据")
+            print(sign_in_json.get('msg2'),"\n\n请按回车重新键入账号数据")
             input()
         else:
             sign_sus=True
