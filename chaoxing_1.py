@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # _*_ coding:utf-8 _*_
+import lxml
 import requests,base64,os,sys,time
 import re,json
 from lxml import etree
@@ -332,6 +333,104 @@ def deal_misson(missons:list,class_cpi:str,mode:int):
                 #mode 1 download medias
                 medias_download(datas["attachments"])
 
+#递归读取题目
+def recursive_work(work_html,ans_dict):
+    from fuzzywuzzy import process
+    TiMu_div=work_html.xpath("./div[@class='TiMu']")
+    if len(TiMu_div):
+        title = TiMu_div[0].xpath("./div[1]/div")
+        if len(title):
+            for value_item in TiMu_div[0].xpath("./div[2]/input") :
+                ans_dict.update({__list_get(value_item.xpath("./@id")) : __list_get(value_item.xpath("./@value"))})
+            qus_type =  TiMu_div[0].xpath("./div[1]/div/text()")[0].strip()[:5]
+            title=title[0].xpath("string(.)").strip()[5:]
+            api_url="http://api.gochati.cn/jsapi.php?token=test123&q={}".format(title)
+            ans_rsp = requests.get(url=api_url)
+            ans_true = eval(ans_rsp.text)["da"]
+            ans_id = __list_get(TiMu_div[0].xpath("./div[2]/input/@id"))
+            if qus_type == "【单选题】":     
+                choices = TiMu_div[0].xpath("./div[2]/ul/li/a/text()") 
+                choice = process.extractOne(ans_true,choices)[0]
+                print(title,choice)
+                ans_dict.update({ans_id.replace("type",""):TiMu_div[0].xpath("./div[2]/ul/li/label/input/@value")[choices.index(choice)]})
+            elif qus_type == "【判断题】":
+                if ans_true == "对" or ans_true == "正确" or ans_true == "√" :
+                    print(title,"yes")
+                    ans_dict.update({ans_id.replace("type",""):"true"})
+                else :
+                    print(title,"no")
+                    ans_dict.update({ans_id.replace("type",""):"false"})
+            elif qus_type == "【多选题】":
+                ans_list=[]
+                if "\x01" in ans_true:
+                    ans_list = ans_true.split("\x01")
+                elif r"#" in ans_true:
+                    ans_list = ans_true.split("#")
+                choices = TiMu_div[0].xpath("./div[2]/ul/li/a/text()")             
+                for ans in ans_list :
+                    choice = process.extractOne(ans,choices)[0]
+                    print(title,choice)
+                    if ans_dict.get((ans_id.replace("type",""))) != None :
+                        if ans_dict[(ans_id.replace("type",""))] != __list_get(TiMu_div[0].xpath("./div[2]/ul/li/label/input/@value")[choices.index(choice)]):
+                            ans_dict.update({ans_id.replace("type",""):"%s%s"%(ans_dict[(ans_id.replace("type",""))],__list_get(TiMu_div[0].xpath("./div[2]/ul/li/label/input/@value")[choices.index(choice)]))})
+                    else :
+                        ans_dict.update({ans_id.replace("type",""):__list_get(TiMu_div[0].xpath("./div[2]/ul/li/label/input/@value")[choices.index(choice)])})          
+                ans_value = list(ans_dict[(ans_id.replace("type",""))])
+                ans_value.sort()
+                ans_dict.update({ans_id.replace("type",""):"".join(ans_value)})
+            print("\n__________________________________________")
+
+        return TiMu_div[0]
+    else :
+        return False
+
+def __list_get(list:list):
+    if len(list):
+        return list[0]
+    else :
+        return ""
+
+#处理章节测试任务
+def misson_work(chapterUrl,workId,jobid,knowledgeid,ktoken,cpi,clazzId,enc,courseId):
+    rsp=requests.get(url=chapterUrl,headers=global_headers)
+    utenc=re.findall(re.compile(r'var utEnc="(.*?)";'),rsp.text)[0]
+    work_url_old="https://mooc1-2.chaoxing.com/workHandle/handle?workId={0}&courseid={1}&knowledgeid={2}&userid=&ut=s&classId={3}&jobid={4}&type=&isphone=false&submit=false&enc={5}&utenc={6}&cpi={7}&ktoken={8}".format(workId,courseId,knowledgeid,clazzId,jobid,enc,utenc,cpi,ktoken)
+    rsp = requests.get(url=work_url_old,headers=global_headers,allow_redirects=False)
+    work_url_new = rsp.headers.get("Location")
+    print(work_url_new)
+    rsp_work = requests.get(url=work_url_new,headers=global_headers)
+    answerwqbid = re.findall(re.compile(r"var a =(.*?);"),rsp_work.text)
+    answerwqbid = __list_get(answerwqbid).strip().replace("\"","").replace(",",r"%2C")
+
+    work_HTML = etree.HTML(rsp_work.text,lxml.etree.HTMLParser(huge_tree=True))
+    ans_dict = {}
+    del rsp
+    form_data = "pyFlag=1"
+    form_url = work_HTML.xpath("//form/@action")[0]
+    datas = work_HTML.xpath("//input[@type='hidden']")[1:16]
+    form_url = "https://mooc1-2.chaoxing.com/work/" + form_url + "&ua=pc&formType=post&saveStatus=1&version=1"   
+    for data in datas :
+        temp_id = __list_get(data.xpath("./@id"))
+        temp_value = __list_get(data.xpath("./@value"))
+        if temp_id and temp_value :
+            form_data += "&{0}={1}".format(temp_id,temp_value)
+    TiMu_div = work_HTML.xpath("//div[@id='ZyBottom']")[0]
+    while True :
+        TiMu_div = recursive_work(TiMu_div,ans_dict)
+        if TiMu_div == False :
+            break
+    for qus_item in ans_dict :
+        form_data += "&{0}={1}".format(qus_item,ans_dict[qus_item])
+    form_data+="&{0}={1}".format("answerwqbid",answerwqbid)
+    print(form_data,"\n",form_url)
+    headers={
+        "Content-Type" : "application/x-www-form-urlencoded; charset=UTF-8",
+        "Cookie" : global_headers["Cookie"],
+        "User-Agent" : global_headers["User-Agent"]
+    }
+    status_rsp = requests.post(url = form_url ,data = form_data ,headers = headers)
+    print(status_rsp.text,status_rsp.status_code)
+    
 #判断媒体类型并处理
 def medias_deal(data,clazzId,chapterId,courseId,chapterUrl):
     result_json = data["attachments"]
@@ -355,6 +454,8 @@ def medias_deal(data,clazzId,chapterId,courseId,chapterUrl):
         elif "bookname" in media_item["property"]:
             jtoken=media_item.get("jtoken")
             misson_book(jobid,chapterId,courseId,clazzId,jtoken)
+        elif media_type == "workid" :
+            misson_work(chapterUrl,media_item.get("property").get("workid"),jobid,chapterId,data["defaults"]["ktoken"],data["defaults"]["cpi"],clazzId,media_item["enc"],courseId)
 
 #下载媒体
 def medias_download(medias):
