@@ -125,12 +125,12 @@ def recursive_course(course_unit_list,chapter_mission,level):
     for course_unit in course_unit_list :
         h3_list = course_unit.xpath("./h3")
         for h3_item in h3_list:               
-            chapter_status=__list_get(h3_item.xpath("./span[@class='icon']/em/@class"))
+            chapter_status=__list_get(h3_item.xpath("./a/span[@class='icon']/em/@class"))
             if chapter_status == "orange":
-                print("--"*level,__list_get(h3_item.xpath("./span[@class='articlename']/a/@title")),"      ",__list_get(h3_item.xpath("./span[@class='icon']/em/text()")))
-                chapter_mission.append("https://mooc1-2.chaoxing.com{}".format(__list_get(h3_item.xpath("./span[@class='articlename']/a/@href"))))
+                print("--"*level,__list_get(h3_item.xpath("./a/span[@class='articlename']/@title")),"      ",__list_get(h3_item.xpath("./a/span[@class='icon']/em/text()")))
+                chapter_mission.append("https://mooc1-2.chaoxing.com{}".format(__list_get(h3_item.xpath("./a/@href"))))
             else:    
-                print("--"*level,__list_get(h3_item.xpath("./span[@class='articlename']/a/@title")),"      ",chapter_status)
+                print("--"*level,__list_get(h3_item.xpath("./a/span[@class='articlename']/@title")),"      ",chapter_status)
         chapter_item_list=course_unit.xpath("./div")
         if chapter_item_list :
             recursive_course(chapter_item_list,chapter_mission,level+1)
@@ -157,7 +157,7 @@ def recursive_course_dict(course_unit_list,chapter_dict):
     for course_unit in course_unit_list:
         h3_list = course_unit.xpath("./h3")
         for h3_item in h3_list:         
-            chapter_dict.update({__list_get(h3_item.xpath("./span[@class='chapterNumber']/text()"))+__list_get(h3_item.xpath("./span[@class='articlename']/span[@class='chapterNumber']/text()"))+__list_get(h3_item.xpath("./span[@class='articlename']/a/@title")):__list_get(h3_item.xpath("./span[@class='articlename']/a/@href"))})
+            chapter_dict.update({__list_get(h3_item.xpath("./a/span[@class='chapterNumber']/text()"))+__list_get(h3_item.xpath("./a/span[@class='articlename']/span[@class='chapterNumber']/text()"))+__list_get(h3_item.xpath("./a/span[@class='articlename']/@title")):__list_get(h3_item.xpath("./a/@href"))})
         chapter_item_list=course_unit.xpath("./div")
         if chapter_item_list :
             recursive_course_dict(chapter_item_list,chapter_dict)
