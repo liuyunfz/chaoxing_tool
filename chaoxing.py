@@ -1,419 +1,489 @@
 #!/usr/bin/env python
 # _*_ coding:utf-8 _*_
-import requests,base64,os,sys,time
-import re,json
-from lxml import etree
+import json
+import re
+import threading
+from queue import Queue
 from urllib import parse
 
-#视频任务enc校验计算
-def encode_enc(clazzid:str,duration:int,objectId:str,otherinfo:str,jobid:str,userid:str):
+import base64
+import os
+import requests
+import sys
+import time
+from lxml import etree
+
+
+# 视频任务enc校验计算
+def encode_enc(clazzid: str, duration: int, objectId: str, otherinfo: str, jobid: str, userid: str):
     import hashlib
-    data="[{0}][{1}][{2}][{3}][{4}][{5}][{6}][0_{7}]".format(clazzid,userid,jobid,objectId,duration*1000,"d_yHJ!$pdA~5",duration*1000,duration)
+    data = "[{0}][{1}][{2}][{3}][{4}][{5}][{6}][0_{7}]".format(clazzid, userid, jobid, objectId, duration * 1000, "d_yHJ!$pdA~5", duration * 1000, duration)
     print(data)
     return hashlib.md5(data.encode()).hexdigest()
 
-#手机号登录，返回response
-def sign_in(uname:str,password:str):
-    sign_in_url="https://passport2.chaoxing.com/fanyalogin"
-    sign_in_data="fid=314&uname={0}&password={1}&refer=http%253A%252F%252Fi.mooc.chaoxing.com&t=true".format(uname,base64.b64encode(password.encode("utf-8")).decode("utf-8"))
-    sign_in_headers={
-        'Accept':'application/json, text/javascript, */*; q=0.01',
-        'Accept-Encoding':'gzip, deflate, br',
-        'Accept-Language':'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-        'Connection':'keep-alive',
-        'Content-Length':'98',
-        'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
-        'Cookie':'route=3744838b34ea6b4834cd438e19ed44f0; JSESSIONID=9CD969F9C1B9633A46EAD7880736DD51; fanyamoocs=11401F839C536D9E; fid=314; isfyportal=1; ptrmooc=t', 
-        'Host':'passport2.chaoxing.com',
-        'Origin':'https://passport2.chaoxing.com',
-        'Referer':'https://passport2.chaoxing.com/login?loginType=4&fid=314&newversion=true&refer=http://i.mooc.chaoxing.com',
-        'Sec-Fetch-Dest':'empty',
-        'Sec-Fetch-Mode':'cors',
-        'Sec-Fetch-Site':'same-origin',
-        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51',
-        'X-Requested-With':'XMLHttpRequest'
+
+# 手机号登录，返回response
+def sign_in(uname: str, password: str):
+    sign_in_url = "https://passport2.chaoxing.com/fanyalogin"
+    sign_in_data = "fid=314&uname={0}&password={1}&refer=http%253A%252F%252Fi.mooc.chaoxing.com&t=true".format(uname, base64.b64encode(password.encode("utf-8")).decode("utf-8"))
+    sign_in_headers = {
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Connection': 'keep-alive',
+        'Content-Length': '98',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Cookie': 'route=3744838b34ea6b4834cd438e19ed44f0; JSESSIONID=9CD969F9C1B9633A46EAD7880736DD51; fanyamoocs=11401F839C536D9E; fid=314; isfyportal=1; ptrmooc=t',
+        'Host': 'passport2.chaoxing.com',
+        'Origin': 'https://passport2.chaoxing.com',
+        'Referer': 'https://passport2.chaoxing.com/login?loginType=4&fid=314&newversion=true&refer=http://i.mooc.chaoxing.com',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51',
+        'X-Requested-With': 'XMLHttpRequest'
     }
-    sign_in_rsp=requests.post(url=sign_in_url,data=sign_in_data,headers=sign_in_headers)
+    sign_in_rsp = requests.post(url=sign_in_url, data=sign_in_data, headers=sign_in_headers)
     return sign_in_rsp
 
-#任务1：用户登录，并合并cookie
+
+# 任务1：用户登录，并合并cookie
 def step_1():
-    sign_sus=False
-    while sign_sus==False :
+    sign_sus = False
+    while sign_sus == False:
         os.system("cls")
-        uname=input("请输入您的手机号:")
+        uname = input("请输入您的手机号:")
         import getpass
-        password=getpass.getpass("请输入您的密码:")
-        sign_in_rsp=sign_in(uname,password)
-        sign_in_json=sign_in_rsp.json()
+        password = getpass.getpass("请输入您的密码:")
+        sign_in_rsp = sign_in(uname, password)
+        sign_in_json = sign_in_rsp.json()
         if sign_in_json['status'] == False:
-            print(sign_in_json.get('msg2'),"\n\n请按回车重新键入账号数据")
+            print(sign_in_json.get('msg2'), "\n\n请按回车重新键入账号数据")
             input()
         else:
-            sign_sus=True
-            print("登陆成功，正在处理您的数据...")           
-    global cookieStr,uid,global_headers
-    uid=sign_in_rsp.cookies['_uid']
-    cookieStr = '' 
+            sign_sus = True
+            print("登陆成功，正在处理您的数据...")
+    global cookieStr, uid, global_headers
+    uid = sign_in_rsp.cookies['_uid']
+    cookieStr = ''
     for item in sign_in_rsp.cookies:
         cookieStr = cookieStr + item.name + '=' + item.value + ';'
-    global_headers={
-        'Cookie':cookieStr,
-        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+    global_headers = {
+        'Cookie': cookieStr,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
     }
 
-#任务2：课程读取，并输出课程信息
+
+# 任务2：课程读取，并输出课程信息
 def step_2():
-    class_url="http://mooc1-2.chaoxing.com/visit/courses"
-    class_rsp=requests.get(url=class_url,headers=global_headers)
-    if class_rsp.status_code==200:
-        class_HTML=etree.HTML(class_rsp.text)
+    class_url = "http://mooc1-2.chaoxing.com/visit/courses"
+    class_rsp = requests.get(url=class_url, headers=global_headers)
+    if class_rsp.status_code == 200:
+        class_HTML = etree.HTML(class_rsp.text)
         os.system("cls")
         print("处理成功，您当前已开启的课程如下：\n")
-        i=0
+        i = 0
         global course_dict
-        course_dict={}
+        course_dict = {}
         for class_item in class_HTML.xpath("/html/body/div/div[2]/div[3]/ul/li[@class='courseItem curFile']"):
-            try:              
-                class_item_name=class_item.xpath("./div[2]/h3/a/@title")[0]
-                #等待开课的课程由于尚未对应链接，所以缺少a标签。
-                i+=1
+            try:
+                class_item_name = class_item.xpath("./div[2]/h3/a/@title")[0]
+                # 等待开课的课程由于尚未对应链接，所以缺少a标签。
+                i += 1
                 print(class_item_name)
-                course_dict[i]=[class_item_name,"https://mooc1-2.chaoxing.com{}".format(class_item.xpath("./div[1]/a[1]/@href")[0])]
+                course_dict[i] = [class_item_name, "https://mooc1-2.chaoxing.com{}".format(class_item.xpath("./div[1]/a[1]/@href")[0])]
             except:
                 pass
         print("———————————————————————————————————")
     else:
         print("课程处理失败，请联系作者")
-    #print(course_dict)
+    # print(course_dict)
 
-#获取url重定向后的新地址与cpi
-def url_302(oldUrl:str):
-    #302跳转，requests库默认追踪headers里的location进行跳转，使用allow_redirects=False
-    course_302_rsp=requests.get(url=oldUrl,headers=global_headers,allow_redirects=False)
-    new_url=course_302_rsp.headers['Location']
+
+# 获取url重定向后的新地址与cpi
+def url_302(oldUrl: str):
+    # 302跳转，requests库默认追踪headers里的location进行跳转，使用allow_redirects=False
+    course_302_rsp = requests.get(url=oldUrl, headers=global_headers, allow_redirects=False)
+    new_url = course_302_rsp.headers['Location']
     result = parse.urlparse(new_url)
-    new_url_data=parse.parse_qs(result.query)
+    new_url_data = parse.parse_qs(result.query)
     try:
-        cpi=new_url_data.get("cpi")[0]
+        cpi = new_url_data.get("cpi")[0]
     except:
         print("fail to get cpi")
-        cpi=None
-    return {"new_url":new_url,"cpi":cpi}
+        cpi = None
+    return {"new_url": new_url, "cpi": cpi}
 
-#获取所有课程信息
-def course_get(url:str): 
-    course_headers={
-        'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'Accept-Encoding':'gzip, deflate, br',
-        'Accept-Language':'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-        'Connection':'keep-alive',
-        'Cookie':cookieStr,
-        'Host':'mooc1-2.chaoxing.com',
-        'Sec-Fetch-Dest':'document',
-        'Sec-Fetch-Mode':'navigate',
-        'Sec-Fetch-Site':'none',
-        'Upgrade-Insecure-Requests':'1',
-        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+
+# 获取所有课程信息
+def course_get(url: str):
+    course_headers = {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Connection': 'keep-alive',
+        'Cookie': cookieStr,
+        'Host': 'mooc1-2.chaoxing.com',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Upgrade-Insecure-Requests': '1',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
     }
-    course_rsp=requests.get(url=url,headers=course_headers)
-    course_HTML=etree.HTML(course_rsp.text)
+    course_rsp = requests.get(url=url, headers=course_headers)
+    course_HTML = etree.HTML(course_rsp.text)
     return course_HTML
 
-#递归读取章节
-def recursive_course(course_unit_list,chapter_mission,level):
-    for course_unit in course_unit_list :
-        h3_list = course_unit.xpath("./h3")
-        for h3_item in h3_list:               
-            chapter_status=__list_get(h3_item.xpath("./a/span[@class='icon']/em/@class"))
-            if chapter_status == "orange":
-                print("--"*level,__list_get(h3_item.xpath("./a/span[@class='articlename']/@title")),"      ",__list_get(h3_item.xpath("./a/span[@class='icon']/em/text()")))
-                chapter_mission.append("https://mooc1-2.chaoxing.com{}".format(__list_get(h3_item.xpath("./a/@href"))))
-            else:    
-                print("--"*level,__list_get(h3_item.xpath("./a/span[@class='articlename']/@title")),"      ",chapter_status)
-        chapter_item_list=course_unit.xpath("./div")
-        if chapter_item_list :
-            recursive_course(chapter_item_list,chapter_mission,level+1)
 
-#选取有任务点的课程,并处理
-def deal_course_select(url_class):
-    new_url_dict=url_302(url_class)
-    new_url=new_url_dict["new_url"]
-    course_HTML=course_get(new_url)
-    #为防止账号没有课程或没有班级，需要后期在xpath获取加入try，以防报错
-    chapter_mission=[]
-    try:
-        course_unit_list=course_HTML.xpath("//div[@class='units']")
-        for course_unit in course_unit_list :
-            print(__list_get(course_unit.xpath("./h2/a/@title")))
-            recursive_course(course_unit.xpath("./div"),chapter_mission,1)        
-    except Exception as e:
-        print("deal_course_select error %s"%e)
-    print("课程读取完成，共有%d个章节可一键完成"%len(chapter_mission))
-    deal_misson(chapter_mission,new_url_dict["cpi"],0)
-
-#递归读取所有课程信息，返回dict
-def recursive_course_dict(course_unit_list,chapter_dict):
+# 递归读取章节
+def recursive_course(course_unit_list, chapter_mission, level):
     for course_unit in course_unit_list:
         h3_list = course_unit.xpath("./h3")
-        for h3_item in h3_list:         
-            chapter_dict.update({__list_get(h3_item.xpath("./a/span[@class='chapterNumber']/text()"))+__list_get(h3_item.xpath("./a/span[@class='articlename']/span[@class='chapterNumber']/text()"))+__list_get(h3_item.xpath("./a/span[@class='articlename']/@title")):__list_get(h3_item.xpath("./a/@href"))})
-        chapter_item_list=course_unit.xpath("./div")
-        if chapter_item_list :
-            recursive_course_dict(chapter_item_list,chapter_dict)
+        for h3_item in h3_list:
+            chapter_status = __list_get(h3_item.xpath("./a/span[@class='icon']/em/@class"))
+            if chapter_status == "orange":
+                print("--" * level, __list_get(h3_item.xpath("./a/span[@class='articlename']/@title")), "      ", __list_get(h3_item.xpath("./a/span[@class='icon']/em/text()")))
+                chapter_mission.append("https://mooc1-2.chaoxing.com{}".format(__list_get(h3_item.xpath("./a/@href"))))
+            else:
+                print("--" * level, __list_get(h3_item.xpath("./a/span[@class='articlename']/@title")), "      ", chapter_status)
+        chapter_item_list = course_unit.xpath("./div")
+        if chapter_item_list:
+            recursive_course(chapter_item_list, chapter_mission, level + 1)
 
-#获取所有的课程信息，并储存url
+
+# thread
+def createQueue(urls):
+    urlQueue = Queue()
+    for url in urls:
+        urlQueue.put(url)
+    return urlQueue
+
+
+class spiderThread(threading.Thread):
+    def __init__(self, threadName, urlQueue, cpi):
+        super(spiderThread, self).__init__()
+        self.threadName = threadName
+        self.urlQueue = urlQueue
+        self.cpi = cpi
+
+    def run(self):
+        while True:
+            if self.urlQueue.empty():
+                break
+            chapter = self.urlQueue.get()
+            deal_misson([chapter], self.cpi, 0)
+            time.sleep(0.2)
+
+
+def createThread(threadCount, urlQueue, cpi):
+    threadQueue = []
+    for i in range(threadCount):
+        spiderThreading = spiderThread("threading_{}".format(i), urlQueue=urlQueue, cpi=cpi)  # 循环创建多个线程，并将队列传入
+        threadQueue.append(spiderThreading)  # 将线程放入线程池
+    return threadQueue
+
+
+# 选取有任务点的课程,并处理
+def deal_course_select(url_class):
+    new_url_dict = url_302(url_class)
+    new_url = new_url_dict["new_url"]
+    course_HTML = course_get(new_url)
+    # 为防止账号没有课程或没有班级，需要后期在xpath获取加入try，以防报错
+    chapter_mission = []
+    try:
+        course_unit_list = course_HTML.xpath("//div[@class='units']")
+        for course_unit in course_unit_list:
+            print(__list_get(course_unit.xpath("./h2/a/@title")))
+            recursive_course(course_unit.xpath("./div"), chapter_mission, 1)
+    except Exception as e:
+        print("deal_course_select error %s" % e)
+
+    print("课程读取完成，共有%d个章节可一键完成" % len(chapter_mission))
+    if len(chapter_mission) > 20:
+        print("章节数大于20，已为您自动启动多线程")
+        threadQueue = createThread(6, createQueue(chapter_mission), new_url_dict["cpi"])
+        for thread in threadQueue:
+            thread.start()  # 线程池启动
+        for thread in threadQueue:
+            thread.join()  # 线程池销毁
+    else:
+        deal_misson(chapter_mission, new_url_dict["cpi"], 0)
+
+
+# 递归读取所有课程信息，返回dict
+def recursive_course_dict(course_unit_list, chapter_dict):
+    for course_unit in course_unit_list:
+        h3_list = course_unit.xpath("./h3")
+        for h3_item in h3_list:
+            chapter_dict.update({__list_get(h3_item.xpath("./a/span[@class='chapterNumber']/text()")) + __list_get(h3_item.xpath("./a/span[@class='articlename']/span[@class='chapterNumber']/text()")) + __list_get(h3_item.xpath("./a/span[@class='articlename']/@title")): __list_get(h3_item.xpath("./a/@href"))})
+        chapter_item_list = course_unit.xpath("./div")
+        if chapter_item_list:
+            recursive_course_dict(chapter_item_list, chapter_dict)
+
+
+# 获取所有的课程信息，并储存url
 def deal_course_all(url_class):
-    new_url_dict=url_302(url_class)
-    new_url=new_url_dict["new_url"]
-    course_HTML=course_get(new_url)
-    i=0
-    chapter_dict={}
-    course_unit_list=course_HTML.xpath("//div[@class='units']")#课程中的大章节
+    new_url_dict = url_302(url_class)
+    new_url = new_url_dict["new_url"]
+    course_HTML = course_get(new_url)
+    i = 0
+    chapter_dict = {}
+    course_unit_list = course_HTML.xpath("//div[@class='units']")  # 课程中的大章节
     try:
         for course_unit in course_unit_list:
-            recursive_course_dict(course_unit.xpath("./div"),chapter_dict)
-        chapter_list=[]
+            recursive_course_dict(course_unit.xpath("./div"), chapter_dict)
+        chapter_list = []
         for chapter_item in chapter_dict:
-            i=i+1          
+            i = i + 1
             try:
-                print("%d"%i,chapter_item)
+                print("%d" % i, chapter_item)
                 chapter_list.append(chapter_dict[chapter_item])
             except Exception as e:
-                print("chapter处理错误",e)
+                print("chapter处理错误", e)
     except Exception as e:
         print(e)
     while True:
-        enter=input("请输入资源所在章节的序号：")
+        enter = input("请输入资源所在章节的序号：")
         try:
-            url_chapter=chapter_list[int(enter)-1]         
-            deal_misson([url_chapter],new_url_dict["cpi"],1)
+            url_chapter = chapter_list[int(enter) - 1]
+            deal_misson([url_chapter], new_url_dict["cpi"], 1)
             break
         except Exception as e:
-            print("'%s'不是可识别的输入，请重新输入"%enter)
+            print("'%s'不是可识别的输入，请重新输入" % enter)
 
-#读取章节页数
-def read_cardcount(courseId:str,clazzid:str,chapterId:str,cpi:str):
-    url='https://mooc1-2.chaoxing.com/mycourse/studentstudyAjax'
-    headers={
-        'Accept':'*/*',
-        'Accept-Encoding':'gzip, deflate, br',
-        'Accept-Language':'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-        'Connection':'keep-alive',
-        'Content-Length':'87',
-        'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
-        'Cookie':cookieStr,
-        'Host':'mooc1-2.chaoxing.com',
-        'Origin':'https://mooc1-2.chaoxing.com',
-        'Referer':'https://mooc1-2.chaoxing.com/mycourse/studentstudy?chapterId=357838590&courseId=214734258&clazzid=32360675&enc=ccf66103f539dfec439e4898b62c8024',  
-        'Sec-Fetch-Dest':'empty',
-        'Sec-Fetch-Mode':'cors',
-        'Sec-Fetch-Site':'same-origin',
-        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.60',
-        'X-Requested-With':'XMLHttpRequest'
+
+# 读取章节页数
+def read_cardcount(courseId: str, clazzid: str, chapterId: str, cpi: str):
+    url = 'https://mooc1-2.chaoxing.com/mycourse/studentstudyAjax'
+    headers = {
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Connection': 'keep-alive',
+        'Content-Length': '87',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Cookie': cookieStr,
+        'Host': 'mooc1-2.chaoxing.com',
+        'Origin': 'https://mooc1-2.chaoxing.com',
+        'Referer': 'https://mooc1-2.chaoxing.com/mycourse/studentstudy?chapterId=357838590&courseId=214734258&clazzid=32360675&enc=ccf66103f539dfec439e4898b62c8024',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.60',
+        'X-Requested-With': 'XMLHttpRequest'
     }
-    data="courseId={0}&clazzid={1}&chapterId={2}&cpi={3}&verificationcode=".format(courseId,clazzid,chapterId,cpi)
-    rsp=requests.post(url=url,headers=headers,data=data)
-    rsp_HTML=etree.HTML(rsp.text)
+    data = "courseId={0}&clazzid={1}&chapterId={2}&cpi={3}&verificationcode=".format(courseId, clazzid, chapterId, cpi)
+    rsp = requests.post(url=url, headers=headers, data=data)
+    rsp_HTML = etree.HTML(rsp.text)
     return rsp_HTML.xpath("//input[@id='cardcount']/@value")[0]
 
-#处理video任务,校验为enc
-def misson_video(objectId,otherInfo,jobid,name,reportUrl,clazzId):
-    status_url="https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(objectId)
-    status_rsp=requests.get(url=status_url,headers=global_headers)
-    status_json=json.loads(status_rsp.text)
-    duration=status_json.get('duration')
-    dtoken=status_json.get('dtoken')
-    print(objectId,otherInfo,jobid,uid,name,duration,reportUrl)
-    multimedia_headers={
-        'Accept':'*/*',
-        'Accept-Encoding':'gzip, deflate, br',
-        'Accept-Language':'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-        'Connection':'keep-alive',
-        'Content-Type':'application/json',
-        'Cookie':cookieStr,
-        'Host':'mooc1-1.chaoxing.com',
-        'Referer':'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
-        'Sec-Fetch-Dest':'empty',
-        'Sec-Fetch-Mode':'cors',
-        'Sec-Fetch-Site':'same-origin',
-        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+
+# 处理video任务,校验为enc
+def misson_video(objectId, otherInfo, jobid, name, reportUrl, clazzId):
+    status_url = "https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(objectId)
+    status_rsp = requests.get(url=status_url, headers=global_headers)
+    status_json = json.loads(status_rsp.text)
+    duration = status_json.get('duration')
+    dtoken = status_json.get('dtoken')
+    print(objectId, otherInfo, jobid, uid, name, duration, reportUrl)
+    multimedia_headers = {
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Connection': 'keep-alive',
+        'Content-Type': 'application/json',
+        'Cookie': cookieStr,
+        'Host': 'mooc1-1.chaoxing.com',
+        'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
     }
     import time
-    elses="/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=4&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken,clazzId,duration,objectId,otherInfo,jobid,uid,encode_enc(clazzId,duration,objectId,otherInfo,jobid,uid),int(time.time()*1000))
-    reportUrl_item=reportUrl+str(elses)
-    multimedia_rsp=requests.get(url=reportUrl_item,headers=multimedia_headers)
+    elses = "/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=4&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken, clazzId, duration, objectId, otherInfo, jobid, uid, encode_enc(clazzId, duration, objectId, otherInfo, jobid, uid), int(time.time() * 1000))
+    reportUrl_item = reportUrl + str(elses)
+    multimedia_rsp = requests.get(url=reportUrl_item, headers=multimedia_headers)
     print(multimedia_rsp.text)
 
-#处理live任务，核心为获取视频token
-def misson_live(streamName,jobid,vdoid,courseId,chapterId,clazzid):
-    src = 'https://live.chaoxing.com/courseLive/newpclive?streamName='+streamName+'&vdoid='+vdoid+'&width=630&height=530'+'&jobid='+jobid+'&userId={0}&knowledgeid={1}&ut=s&clazzid={2}&courseid={3}'.format(uid,chapterId,clazzid,courseId)
-    rsp=requests.get(url=src,headers=global_headers)
-    rsp_HTML=etree.HTML(rsp.text)
-    token_url=rsp_HTML.xpath("//iframe/@src")[0]
+
+# 处理live任务，核心为获取视频token
+def misson_live(streamName, jobid, vdoid, courseId, chapterId, clazzid):
+    src = 'https://live.chaoxing.com/courseLive/newpclive?streamName=' + streamName + '&vdoid=' + vdoid + '&width=630&height=530' + '&jobid=' + jobid + '&userId={0}&knowledgeid={1}&ut=s&clazzid={2}&courseid={3}'.format(uid, chapterId, clazzid, courseId)
+    rsp = requests.get(url=src, headers=global_headers)
+    rsp_HTML = etree.HTML(rsp.text)
+    token_url = rsp_HTML.xpath("//iframe/@src")[0]
     print(token_url)
     token_result = parse.urlparse(token_url)
-    token_data=parse.parse_qs(token_result.query)
-    token=token_data.get("token")
-    finish_url="https://zhibo.chaoxing.com/live/saveCourseJob?courseId={0}&knowledgeId={1}&classId={2}&userId={3}&jobId={4}&token={5}".format(courseId,chapterId,clazzid,uid,jobid,token[0])
-    finish_rsp=requests.get(url=finish_url,headers=global_headers)
+    token_data = parse.parse_qs(token_result.query)
+    token = token_data.get("token")
+    finish_url = "https://zhibo.chaoxing.com/live/saveCourseJob?courseId={0}&knowledgeId={1}&classId={2}&userId={3}&jobId={4}&token={5}".format(courseId, chapterId, clazzid, uid, jobid, token[0])
+    finish_rsp = requests.get(url=finish_url, headers=global_headers)
     print(finish_rsp.text)
 
-#处理document任务，核心为jtoken
-def misson_doucument(jobid,chapterId,courseid,clazzid,jtoken):  
-    multimedia_headers={
-        'Accept':'*/*',
-        'Accept-Encoding':'gzip, deflate, br',
-        'Accept-Language':'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-        'Connection':'keep-alive',
-        'Cookie':cookieStr,
-        'Host':'mooc1-2.chaoxing.com',
-        'Referer':'https://mooc1-2.chaoxing.com/ananas/modules/pdf/index.html?v=2020-1103-1706',
-        'Sec-Fetch-Dest':'empty',
-        'Sec-Fetch-Mode':'cors',
-        'Sec-Fetch-Site':'same-origin',
-        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36 Edg/87.0.664.52',
-        'X-Requested-With':'XMLHttpRequest'
+
+# 处理document任务，核心为jtoken
+def misson_doucument(jobid, chapterId, courseid, clazzid, jtoken):
+    multimedia_headers = {
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Connection': 'keep-alive',
+        'Cookie': cookieStr,
+        'Host': 'mooc1-2.chaoxing.com',
+        'Referer': 'https://mooc1-2.chaoxing.com/ananas/modules/pdf/index.html?v=2020-1103-1706',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36 Edg/87.0.664.52',
+        'X-Requested-With': 'XMLHttpRequest'
     }
-    url='https://mooc1-2.chaoxing.com/ananas/job/document?jobid={0}&knowledgeid={1}&courseid={2}&clazzid={3}&jtoken={4}&_dc=1607066762782'.format(jobid,chapterId,courseid,clazzid,jtoken)
-    multimedia_rsp=requests.get(url=url,headers=multimedia_headers)
+    url = 'https://mooc1-2.chaoxing.com/ananas/job/document?jobid={0}&knowledgeid={1}&courseid={2}&clazzid={3}&jtoken={4}&_dc=1607066762782'.format(jobid, chapterId, courseid, clazzid, jtoken)
+    multimedia_rsp = requests.get(url=url, headers=multimedia_headers)
     print(multimedia_rsp.text)
 
-#处理book任务，核心为jtoken
-def misson_book(jobid,chapterId,courseid,clazzid,jtoken):  
-    multimedia_headers={
-        'Accept':'*/*',
-        'Accept-Encoding':'gzip, deflate, br',
-        'Accept-Language':'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-        'Connection':'keep-alive',
-        'Cookie':cookieStr,
-        'Host':'mooc1-2.chaoxing.com',
-        'Referer':'https://mooc1-2.chaoxing.com/ananas/modules/innerbook/index.html?v=2018-0126-1905',
-        'Sec-Fetch-Dest':'empty',
-        'Sec-Fetch-Mode':'cors',
-        'Sec-Fetch-Site':'same-origin',
-        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36 Edg/87.0.664.52',
-        'X-Requested-With':'XMLHttpRequest'
+
+# 处理book任务，核心为jtoken
+def misson_book(jobid, chapterId, courseid, clazzid, jtoken):
+    multimedia_headers = {
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Connection': 'keep-alive',
+        'Cookie': cookieStr,
+        'Host': 'mooc1-2.chaoxing.com',
+        'Referer': 'https://mooc1-2.chaoxing.com/ananas/modules/innerbook/index.html?v=2018-0126-1905',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36 Edg/87.0.664.52',
+        'X-Requested-With': 'XMLHttpRequest'
     }
-    url='https://mooc1-2.chaoxing.com/ananas/job?jobid={0}&knowledgeid={1}&courseid={2}&clazzid={3}&jtoken={4}&_dc={5}'.format(jobid,chapterId,courseid,clazzid,jtoken,int(time.time()*1000))
-    multimedia_rsp=requests.get(url=url,headers=multimedia_headers)
+    url = 'https://mooc1-2.chaoxing.com/ananas/job?jobid={0}&knowledgeid={1}&courseid={2}&clazzid={3}&jtoken={4}&_dc={5}'.format(jobid, chapterId, courseid, clazzid, jtoken, int(time.time() * 1000))
+    multimedia_rsp = requests.get(url=url, headers=multimedia_headers)
     print(multimedia_rsp.text)
 
-#课程学习次数
-def set_log(course_url:str):
-    course_rsp=requests.get(url=url_302(course_url)["new_url"],headers=global_headers)
-    course_HTML=etree.HTML(course_rsp.text)
-    log_url=course_HTML.xpath("/html/body/script[11]/@src")[0]
-    rsp=requests.get(url=log_url,headers=global_headers)
+
+# 课程学习次数
+def set_log(course_url: str):
+    course_rsp = requests.get(url=url_302(course_url)["new_url"], headers=global_headers)
+    course_HTML = etree.HTML(course_rsp.text)
+    log_url = course_HTML.xpath("/html/body/script[11]/@src")[0]
+    rsp = requests.get(url=log_url, headers=global_headers)
     print(rsp.text)
 
-#处理任务
-def deal_misson(missons:list,class_cpi:str,mode:int):
+
+# 处理任务
+def deal_misson(missons: list, class_cpi: str, mode: int):
     for chapter_mission_item in missons:
         result = parse.urlparse(chapter_mission_item)
-        chapter_data=parse.parse_qs(result.query)
-        clazzId=chapter_data.get('clazzid')[0]
-        courseId=chapter_data.get('courseId')[0]
-        chapterId=chapter_data.get('chapterId')[0]
-        cardcount=int(read_cardcount(courseId,clazzId,chapterId,class_cpi))
+        chapter_data = parse.parse_qs(result.query)
+        clazzId = chapter_data.get('clazzid')[0]
+        courseId = chapter_data.get('courseId')[0]
+        chapterId = chapter_data.get('chapterId')[0]
+        cardcount = int(read_cardcount(courseId, clazzId, chapterId, class_cpi))
         for num in range(cardcount):
-            print("num:",num)
-            medias_url="https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId,courseId,chapterId,class_cpi,num)
-            medias_rsp=requests.get(url=medias_url,headers=global_headers)
-            medias_HTML=etree.HTML(medias_rsp.text)
-            medias_text=medias_HTML.xpath("//script[1]/text()")[0]
-            pattern = re.compile(r"mArg = ({[\s\S]*)}catch")          
-            datas = re.findall(pattern,medias_text)[0]
+            print("num:", num)
+            medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, class_cpi, num)
+            medias_rsp = requests.get(url=medias_url, headers=global_headers)
+            medias_HTML = etree.HTML(medias_rsp.text)
+            medias_text = medias_HTML.xpath("//script[1]/text()")[0]
+            pattern = re.compile(r"mArg = ({[\s\S]*)}catch")
+            datas = re.findall(pattern, medias_text)[0]
             datas = json.loads(datas.strip()[:-1])
-            if mode == 0 :
-                #mode 0 deal misson
-                medias_deal(datas,clazzId,chapterId,courseId,chapter_mission_item)
-            else :
-                #mode 1 download medias
+            if mode == 0:
+                # mode 0 deal misson
+                medias_deal(datas, clazzId, chapterId, courseId, chapter_mission_item)
+            else:
+                # mode 1 download medias
                 medias_download(datas["attachments"])
 
-#判断媒体类型并处理
-def medias_deal(data,clazzId,chapterId,courseId,chapterUrl):
+
+# 判断媒体类型并处理
+def medias_deal(data, clazzId, chapterId, courseId, chapterUrl):
     result_json = data["attachments"]
     for media_item in result_json:
-        if media_item.get("job") == None :
+        if media_item.get("job") == None:
             continue
-        media_type=media_item.get("type")
-        jobid=media_item.get("jobid")
+        media_type = media_item.get("type")
+        jobid = media_item.get("jobid")
         if media_type == "video":
-            objectId=media_item.get("objectId")
-            otherInfo=media_item.get("otherInfo")
-            name=media_item.get('property').get('name')
-            misson_video(objectId=objectId,otherInfo=otherInfo,jobid=jobid,name=name,reportUrl=data["defaults"]["reportUrl"],clazzId=clazzId)
+            objectId = media_item.get("objectId")
+            otherInfo = media_item.get("otherInfo")
+            name = media_item.get('property').get('name')
+            misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=data["defaults"]["reportUrl"], clazzId=clazzId)
         elif media_type == "live":
-            streamName=media_item.get("property").get("streamName")
-            vdoid=media_item.get("property").get("vdoid")
-            misson_live(streamName,jobid,vdoid,courseId,chapterId,clazzId)
+            streamName = media_item.get("property").get("streamName")
+            vdoid = media_item.get("property").get("vdoid")
+            misson_live(streamName, jobid, vdoid, courseId, chapterId, clazzId)
         elif media_type == "document":
-            jtoken=media_item.get("jtoken")
-            misson_doucument(jobid,chapterId,courseId,clazzId,jtoken)
+            jtoken = media_item.get("jtoken")
+            misson_doucument(jobid, chapterId, courseId, clazzId, jtoken)
         elif "bookname" in media_item["property"]:
-            jtoken=media_item.get("jtoken")
-            misson_book(jobid,chapterId,courseId,clazzId,jtoken)
+            jtoken = media_item.get("jtoken")
+            misson_book(jobid, chapterId, courseId, clazzId, jtoken)
 
-#下载媒体
+
+# 下载媒体
 def medias_download(medias):
-    downloads_dict={}
-    i=0
+    downloads_dict = {}
+    i = 0
     for media_item in medias:
-        objectid=media_item.get("property").get("objectid")
+        objectid = media_item.get("property").get("objectid")
         if objectid == None:
             continue
-        status_rsp=requests.get(url="https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(objectid),headers=global_headers)
-        status_json=json.loads(status_rsp.text)
-        filename=status_json.get('filename')
-        download=status_json.get('download')
-        i+=1
-        downloads_dict[i]=[filename,download]
-        print(i,".       ",filename)
-    if downloads_dict == {} :
+        status_rsp = requests.get(url="https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(objectid), headers=global_headers)
+        status_json = json.loads(status_rsp.text)
+        filename = status_json.get('filename')
+        download = status_json.get('download')
+        i += 1
+        downloads_dict[i] = [filename, download]
+        print(i, ".       ", filename)
+    if downloads_dict == {}:
         print("所在章节无可下载的资源")
         return False
-    enter=input("请输入你要下载资源的序号，以逗号分隔：")
-    enter_list=enter.split(",")
+    enter = input("请输入你要下载资源的序号，以逗号分隔：")
+    enter_list = enter.split(",")
     for media_index in enter_list:
         try:
-            with open(downloads_dict[int(media_index)][0],"wb") as f :
-                print("\n正在下载%s..."%downloads_dict[int(media_index)][0])
-                rsp=requests.get(url=downloads_dict[int(media_index)][1],headers=global_headers,stream=True)
-                length_already=0
-                length_all=int(rsp.headers['content-length'])
-                for chunk in rsp.iter_content(chunk_size=5242880) :
-                    if chunk :
-                        length_already+=len(chunk)
-                        print("\r下载进度：%d%%"%int(length_already/length_all*100),end="",flush=True)                 
+            with open(downloads_dict[int(media_index)][0], "wb") as f:
+                print("\n正在下载%s..." % downloads_dict[int(media_index)][0])
+                rsp = requests.get(url=downloads_dict[int(media_index)][1], headers=global_headers, stream=True)
+                length_already = 0
+                length_all = int(rsp.headers['content-length'])
+                for chunk in rsp.iter_content(chunk_size=5242880):
+                    if chunk:
+                        length_already += len(chunk)
+                        print("\r下载进度：%d%%" % int(length_already / length_all * 100), end="", flush=True)
                         f.write(chunk)
                 print("\n下载完成")
                 f.close()
-        except OSError :
-            new_name=str(int(time.time()))+os.path.splitext(downloads_dict[int(media_index)][0])[-1]
-            print("由于windows不允许文件包含特殊字符，已将文件重命名为 %s"%new_name)
-            with open(new_name,"wb") as f :
-                print("\n正在下载%s..."%new_name)
-                length_already=0
-                length_all=int(rsp.headers['content-length'])
-                for chunk in rsp.iter_content(chunk_size=5242880) :
-                    if chunk :
-                        length_already+=len(chunk)
-                        print("\r下载进度：%d%%"%int(length_already/length_all*100),end="",flush=True)                 
+        except OSError:
+            new_name = str(int(time.time())) + os.path.splitext(downloads_dict[int(media_index)][0])[-1]
+            print("由于windows不允许文件包含特殊字符，已将文件重命名为 %s" % new_name)
+            with open(new_name, "wb") as f:
+                print("\n正在下载%s..." % new_name)
+                length_already = 0
+                length_all = int(rsp.headers['content-length'])
+                for chunk in rsp.iter_content(chunk_size=5242880):
+                    if chunk:
+                        length_already += len(chunk)
+                        print("\r下载进度：%d%%" % int(length_already / length_all * 100), end="", flush=True)
                         f.write(chunk)
                 print("\n下载完成")
                 f.close()
-        except Exception as e :
-            print("文件下载错误：",e)
+        except Exception as e:
+            print("文件下载错误：", e)
 
-def __list_get(list:list):
+
+def __list_get(list: list):
     if len(list):
         return list[0]
-    else :
+    else:
         return ""
-        
-#自定义任务类，处理菜单任务
+
+
+# 自定义任务类，处理菜单任务
 class Things():
     def __init__(self, username='nobody'):
         self.username = username
@@ -421,47 +491,47 @@ class Things():
     def misson_1(self):
         os.system("cls")
         for i in range(len(course_dict)):
-            print("%d.%s"%(i+1,course_dict[i+1][0]))
-        enter=input("\n确认要一键完成以上所有课程吗？(回车确认，任意其他输入则取消并返回主菜单)")
+            print("%d.%s" % (i + 1, course_dict[i + 1][0]))
+        enter = input("\n确认要一键完成以上所有课程吗？(回车确认，任意其他输入则取消并返回主菜单)")
         if enter == "":
             print("开始处理课程中....\n")
             for course_item in course_dict:
-                print("开始处理'%s'..."%course_dict[course_item][0])
+                print("开始处理'%s'..." % course_dict[course_item][0])
                 deal_course_select(course_dict[course_item][1])
-                print("'%s' 课程处理完成\n"%course_dict[course_item][0])
+                print("'%s' 课程处理完成\n" % course_dict[course_item][0])
             print("所有课程处理完成，请手动登陆网站进行查看，如有疑问请联系作者。")
         else:
             pass
-    
+
     def misson_2(self):
         os.system("cls")
         print("您所加入的课程如下：")
         for i in range(len(course_dict)):
-            print("%d.%s"%(i+1,course_dict[i+1][0]))       
+            print("%d.%s" % (i + 1, course_dict[i + 1][0]))
         while True:
-            enter=input("输入你要完成的课程序号(输入q回退主菜单)：")
+            enter = input("输入你要完成的课程序号(输入q回退主菜单)：")
             try:
                 if enter == "q":
                     break
                 else:
                     try:
-                        input("请确认您要完成'%s'"%(course_dict[int(enter)][0]))  
+                        input("请确认您要完成'%s'" % (course_dict[int(enter)][0]))
                     except:
-                        print("'%s'并不是可识别的序号，请您重新检查后输入"%enter)
+                        print("'%s'并不是可识别的序号，请您重新检查后输入" % enter)
                         continue
                     deal_course_select(course_dict[int(enter)][1])
                     input("\n任务已完成，回车返回主菜单")
                     break
             except Exception as e:
-                    print("error:%s"%e)
+                print("error:%s" % e)
 
     def misson_3(self):
         os.system("cls")
         print("您所加入的课程如下：")
         for i in range(len(course_dict)):
-            print("%d.%s"%(i+1,course_dict[i+1][0]))       
+            print("%d.%s" % (i + 1, course_dict[i + 1][0]))
         while True:
-            enter=input("请输入你要下载资源的课程序号(输入q回退主菜单)：")
+            enter = input("请输入你要下载资源的课程序号(输入q回退主菜单)：")
             try:
                 if enter == "q":
                     break
@@ -469,38 +539,38 @@ class Things():
                     try:
                         deal_course_all(course_dict[int(enter)][1])
                     except:
-                        print("'%s'并不是可识别的序号，请您重新检查后输入"%enter)
+                        print("'%s'并不是可识别的序号，请您重新检查后输入" % enter)
                         continue
                     input("\n任务已完成，回车返回主菜单")
                     break
             except Exception as e:
-                    print("error:%s"%e)
+                print("error:%s" % e)
 
     def misson_4(self):
         os.system("cls")
         print("您所加入的课程如下：")
         for i in range(len(course_dict)):
-            print("%d.%s"%(i+1,course_dict[i+1][0]))       
+            print("%d.%s" % (i + 1, course_dict[i + 1][0]))
         while True:
-            enter=input("输入你要刷取学习次数的课程序号(输入q回退主菜单)：")
+            enter = input("输入你要刷取学习次数的课程序号(输入q回退主菜单)：")
             try:
                 if enter == "q":
                     break
                 else:
                     try:
-                        count=int(input("请输入您要刷取'%s' 的学习次数："%(course_dict[int(enter)][0])))
+                        count = int(input("请输入您要刷取'%s' 的学习次数：" % (course_dict[int(enter)][0])))
                     except:
                         print("错误输入\n")
                         continue
-                    try:                
+                    try:
                         for num in range(count):
                             set_log(course_dict[int(enter)][1])
                         input("\n任务已完成，回车返回主菜单")
                         break
                     except Exception as e:
-                        print(e)                      
+                        print(e)
             except Exception as e:
-                    print("error:%s"%e)
+                print("error:%s" % e)
 
     def misson_5(self):
         os.system("cls")
@@ -508,6 +578,7 @@ class Things():
     def misson_6(self):
         step_1()
         step_2()
+
 
 class Menu():
     def __init__(self):
