@@ -482,6 +482,67 @@ def __list_get(list: list):
     else:
         return ""
 
+class VideoThread(threading.Thread):
+    def __init__(self,objectId, otherInfo, jobid, name, reportUrl, clazzId):
+        super(VideoThread, self).__init__()
+        self.objectId=objectId
+        self.otherInfo=otherInfo
+        self.jobid=jobid
+        self.name=name
+        self.reportUrl=reportUrl
+        self.clazzId=clazzId
+
+    def run(self) -> None:
+        while True:
+            misson_video(objectId=self.objectId, otherInfo=self.otherInfo, jobid=self.jobid, name=self.name, reportUrl=self.reportUrl, clazzId=self.clazzId)
+            time.sleep(15)
+
+# 获取课程视频观看总时长
+def get_task_status(url: str):
+    url = url_302(url)["new_url"]
+    result = parse.urlparse(url)
+    chapter_data = parse.parse_qs(result.query)
+    courseId = chapter_data.get("courseId")[0]
+    cpi = chapter_data.get("cpi")[0]
+    clazzId = chapter_data.get("clazzid")[0]
+    sta_url = "https://stat2-ans.chaoxing.com/task/s/index?courseid={0}&cpi={1}&clazzid={2}&ut=s&".format(courseId, cpi, clazzId)
+    rsp = requests.get(url=sta_url, headers=global_headers)
+    rsp_html = etree.HTML(rsp.text)
+    already_time=__list_get(re.findall("[0-9]+[.]?[0-9]?", __list_get(rsp_html.xpath("//div[@class='fl min']/span/text()"))))
+    all_time=__list_get(re.findall("[0-9]+[.]?[0-9]?", __list_get(rsp_html.xpath("//p[@class='bottomC fs12']/text()"))))
+    print(already_time,"/",all_time)
+    if already_time < all_time:
+        datal_url="https://stat2-ans.chaoxing.com/task/s/progress/detail?clazzid={0}&courseid={1}&cpi={2}&ut=s&page=1&pageSize=16&status=0".format(clazzId,courseId,cpi)
+        rsp=requests.get(url=datal_url,headers=global_headers)
+        for i in rsp.json()["data"]["results"]:
+            for j in i["list"]:
+                if j["type"] == "视频" :
+                    chapterId=j["chapterId"]
+                    break
+            if chapterId:
+                break
+        print(chapterId)
+        medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num=0&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, cpi)
+        medias_rsp = requests.get(url=medias_url, headers=global_headers)
+        medias_HTML = etree.HTML(medias_rsp.text)
+        medias_text = medias_HTML.xpath("//script[1]/text()")[0]
+        pattern = re.compile(r"mArg = ({[\s\S]*)}catch")
+        datas = re.findall(pattern, medias_text)[0]
+        datas = json.loads(datas.strip()[:-1])
+        for media_item in datas["attachments"]:
+            media_type = media_item.get("type")
+            jobid = media_item.get("jobid")
+            if media_type == "video":
+                objectId = media_item.get("objectId")
+                otherInfo = media_item.get("otherInfo")
+                name = media_item.get('property').get('name')
+                return VideoThread(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId)
+            else :
+                return 0
+
+
+
+
 
 # 自定义任务类，处理菜单任务
 class Things():
@@ -574,8 +635,24 @@ class Things():
 
     def misson_5(self):
         os.system("cls")
+        threadPool=[]
+        for i in range(len(course_dict)):
+            print("正在读取 %s :" % (course_dict[i + 1][0]))
+            isThread=get_task_status(course_dict[i + 1][1])
+            if isThread:
+                threadPool.append(isThread)
+
+        for i in threadPool:
+            i.start()
+            time.sleep(10)
+        for j in threadPool:
+            j.join()
+
 
     def misson_6(self):
+        os.system("cls")
+
+    def misson_7(self):
         step_1()
         step_2()
 
@@ -590,7 +667,8 @@ class Menu():
             "4": self.thing.misson_4,
             "5": self.thing.misson_5,
             "6": self.thing.misson_6,
-            "7": self.quit
+            "7": self.thing.misson_7,
+            "8": self.quit
         }
 
     def display_menu(self):
@@ -600,9 +678,10 @@ class Menu():
 2.完成单个课程中的所有任务节点(不包含测验)
 3.下载课程资源(mp4,pdf,pptx,png等)
 4.刷取课程学习次数
-5.清除日志
-6.退出当前账号，重新登陆
-7.退出本程序
+5.刷取视频学习时间
+6.清除日志
+7.退出当前账号，重新登陆
+8.退出本程序
         """)
 
     def run(self):
