@@ -304,6 +304,7 @@ def misson_video(objectId, otherInfo, jobid, name, reportUrl, clazzId):
     elses = "/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=4&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken, clazzId, duration, objectId, otherInfo, jobid, uid, encode_enc(clazzId, duration, objectId, otherInfo, jobid, uid), int(time.time() * 1000))
     reportUrl_item = reportUrl + str(elses)
     multimedia_rsp = requests.get(url=reportUrl_item, headers=multimedia_headers)
+    return reportUrl_item
     print(multimedia_rsp.text)
 
 
@@ -483,19 +484,15 @@ def __list_get(list: list):
         return ""
 
 class VideoThread(threading.Thread):
-    def __init__(self,objectId, otherInfo, jobid, name, reportUrl, clazzId):
+    def __init__(self,post_url,name):
         super(VideoThread, self).__init__()
-        self.objectId=objectId
-        self.otherInfo=otherInfo
-        self.jobid=jobid
+        self.post_url=post_url
         self.name=name
-        self.reportUrl=reportUrl
-        self.clazzId=clazzId
 
     def run(self) -> None:
         while True:
-            misson_video(objectId=self.objectId, otherInfo=self.otherInfo, jobid=self.jobid, name=self.name, reportUrl=self.reportUrl, clazzId=self.clazzId)
-            time.sleep(15)
+            print(self.name,requests.get(url=self.post_url,headers=global_headers).text)
+            time.sleep(30)
 
 # 获取课程视频观看总时长
 def get_task_status(url: str):
@@ -508,8 +505,8 @@ def get_task_status(url: str):
     sta_url = "https://stat2-ans.chaoxing.com/task/s/index?courseid={0}&cpi={1}&clazzid={2}&ut=s&".format(courseId, cpi, clazzId)
     rsp = requests.get(url=sta_url, headers=global_headers)
     rsp_html = etree.HTML(rsp.text)
-    already_time=__list_get(re.findall("[0-9]+[.]?[0-9]?", __list_get(rsp_html.xpath("//div[@class='fl min']/span/text()"))))
-    all_time=__list_get(re.findall("[0-9]+[.]?[0-9]?", __list_get(rsp_html.xpath("//p[@class='bottomC fs12']/text()"))))
+    already_time=float(__list_get(re.findall("[0-9]+[.]?[0-9]?", __list_get(rsp_html.xpath("//div[@class='fl min']/span/text()")))))
+    all_time=float(__list_get(re.findall("[0-9]+[.]?[0-9]?", __list_get(rsp_html.xpath("//p[@class='bottomC fs12']/text()")))))
     print(already_time,"/",all_time)
     if already_time < all_time:
         datal_url="https://stat2-ans.chaoxing.com/task/s/progress/detail?clazzid={0}&courseid={1}&cpi={2}&ut=s&page=1&pageSize=16&status=0".format(clazzId,courseId,cpi)
@@ -536,12 +533,9 @@ def get_task_status(url: str):
                 objectId = media_item.get("objectId")
                 otherInfo = media_item.get("otherInfo")
                 name = media_item.get('property').get('name')
-                return VideoThread(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId)
+                return VideoThread(misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId),name=name)
             else :
                 return 0
-
-
-
 
 
 # 自定义任务类，处理菜单任务
