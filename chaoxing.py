@@ -483,16 +483,38 @@ def __list_get(list: list):
     else:
         return ""
 
+
 class VideoThread(threading.Thread):
-    def __init__(self,post_url,name):
+    def __init__(self, post_url, name):
         super(VideoThread, self).__init__()
-        self.post_url=post_url
-        self.name=name
+        self.post_url = post_url
+        self.name = name
 
     def run(self) -> None:
+        rsp = requests.get(url=self.post_url, headers=global_headers)
+        cookieTmp = cookieStr
+        for item in rsp.cookies:
+            cookieTmp = cookieTmp + item.name + '=' + item.value + ';'
+        headers = {
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+            'Connection': 'keep-alive',
+            'Content-Type': 'application/json',
+            'Cookie': cookieTmp,
+            'Host': 'mooc1.chaoxing.com',
+            'Referer': 'https://mooc1.chaoxing.com/ananas/modules/video/index.html?v=2020-1105-2010',
+            'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="90", "Microsoft Edge";v="90"',
+            'sec-ch-ua-mobile': '?0',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36 Edg/90.0.818.51'
+        }
         while True:
-            print(self.name,requests.get(url=self.post_url,headers=global_headers).text)
-            time.sleep(30)
+            print(self.name, requests.get(url=self.post_url, headers=headers).text)
+            time.sleep(60)
+
 
 # 获取课程视频观看总时长
 def get_task_status(url: str):
@@ -505,16 +527,16 @@ def get_task_status(url: str):
     sta_url = "https://stat2-ans.chaoxing.com/task/s/index?courseid={0}&cpi={1}&clazzid={2}&ut=s&".format(courseId, cpi, clazzId)
     rsp = requests.get(url=sta_url, headers=global_headers)
     rsp_html = etree.HTML(rsp.text)
-    already_time=float(__list_get(re.findall("[0-9]+[.]?[0-9]?", __list_get(rsp_html.xpath("//div[@class='fl min']/span/text()")))))
-    all_time=float(__list_get(re.findall("[0-9]+[.]?[0-9]?", __list_get(rsp_html.xpath("//p[@class='bottomC fs12']/text()")))))
-    print(already_time,"/",all_time)
+    already_time = float(__list_get(re.findall("[0-9]+[.]?[0-9]?", __list_get(rsp_html.xpath("//div[@class='fl min']/span/text()")))))
+    all_time = float(__list_get(re.findall("[0-9]+[.]?[0-9]?", __list_get(rsp_html.xpath("//p[@class='bottomC fs12']/text()")))))
+    print(already_time, "/", all_time)
     if already_time < all_time:
-        datal_url="https://stat2-ans.chaoxing.com/task/s/progress/detail?clazzid={0}&courseid={1}&cpi={2}&ut=s&page=1&pageSize=16&status=0".format(clazzId,courseId,cpi)
-        rsp=requests.get(url=datal_url,headers=global_headers)
+        datal_url = "https://stat2-ans.chaoxing.com/task/s/progress/detail?clazzid={0}&courseid={1}&cpi={2}&ut=s&page=1&pageSize=16&status=0".format(clazzId, courseId, cpi)
+        rsp = requests.get(url=datal_url, headers=global_headers)
         for i in rsp.json()["data"]["results"]:
             for j in i["list"]:
-                if j["type"] == "视频" :
-                    chapterId=j["chapterId"]
+                if j["type"] == "视频":
+                    chapterId = j["chapterId"]
                     break
             if chapterId:
                 break
@@ -533,8 +555,8 @@ def get_task_status(url: str):
                 objectId = media_item.get("objectId")
                 otherInfo = media_item.get("otherInfo")
                 name = media_item.get('property').get('name')
-                return VideoThread(misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId),name=name)
-            else :
+                return VideoThread(misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId), name=name)
+            else:
                 return 0
 
 
@@ -629,10 +651,10 @@ class Things():
 
     def misson_5(self):
         os.system("cls")
-        threadPool=[]
+        threadPool = []
         for i in range(len(course_dict)):
             print("正在读取 %s :" % (course_dict[i + 1][0]))
-            isThread=get_task_status(course_dict[i + 1][1])
+            isThread = get_task_status(course_dict[i + 1][1])
             if isThread:
                 threadPool.append(isThread)
 
@@ -641,7 +663,6 @@ class Things():
             time.sleep(10)
         for j in threadPool:
             j.join()
-
 
     def misson_6(self):
         os.system("cls")
