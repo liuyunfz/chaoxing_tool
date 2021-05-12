@@ -540,24 +540,26 @@ def get_task_status(url: str):
                     break
             if chapterId:
                 break
-        print(chapterId)
-        medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num=0&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, cpi)
-        medias_rsp = requests.get(url=medias_url, headers=global_headers)
-        medias_HTML = etree.HTML(medias_rsp.text)
-        medias_text = medias_HTML.xpath("//script[1]/text()")[0]
-        pattern = re.compile(r"mArg = ({[\s\S]*)}catch")
-        datas = re.findall(pattern, medias_text)[0]
-        datas = json.loads(datas.strip()[:-1])
-        for media_item in datas["attachments"]:
-            media_type = media_item.get("type")
-            jobid = media_item.get("jobid")
-            if media_type == "video":
-                objectId = media_item.get("objectId")
-                otherInfo = media_item.get("otherInfo")
-                name = media_item.get('property').get('name')
-                return VideoThread(misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId), name=name)
-            else:
-                return 0
+        # print(chapterId)
+        cardcount=int(read_cardcount(courseId,clazzId,chapterId,cpi))
+        for i in range(cardcount):
+            medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, cpi,i)
+            medias_rsp = requests.get(url=medias_url, headers=global_headers)
+            medias_HTML = etree.HTML(medias_rsp.text)
+            medias_text = medias_HTML.xpath("//script[1]/text()")[0]
+            pattern = re.compile(r"mArg = ({[\s\S]*)}catch")
+            datas = re.findall(pattern, medias_text)[0]
+            datas = json.loads(datas.strip()[:-1])
+            for media_item in datas["attachments"]:
+                media_type = media_item.get("type")
+                jobid = media_item.get("jobid")
+                if media_type == "video":
+                    objectId = media_item.get("objectId")
+                    otherInfo = media_item.get("otherInfo")
+                    name = media_item.get('property').get('name')
+                    return VideoThread(misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId), name=name)
+                else:
+                    return 0
 
 
 # 自定义任务类，处理菜单任务
