@@ -13,11 +13,12 @@ import sys
 import time
 from lxml import etree
 
-
+global video_url_list
+video_url_list = []
 # 视频任务enc校验计算
-def encode_enc(clazzid: str, duration: int, objectId: str, otherinfo: str, jobid: str, userid: str):
+def encode_enc(clazzid: str, duration: int, objectId: str, otherinfo: str, jobid: str, userid: str,currentTimeSec :str):
     import hashlib
-    data = "[{0}][{1}][{2}][{3}][{4}][{5}][{6}][0_{7}]".format(clazzid, userid, jobid, objectId, duration * 1000, "d_yHJ!$pdA~5", duration * 1000, duration)
+    data = "[{0}][{1}][{2}][{3}][{4}][{5}][{6}][0_{7}]".format(clazzid, userid, jobid, objectId, int(currentTimeSec)  * 1000, "d_yHJ!$pdA~5", duration * 1000, duration)
     print(data)
     return hashlib.md5(data.encode()).hexdigest()
 
@@ -199,15 +200,15 @@ def deal_course_select(url_class):
         print("deal_course_select error %s" % e)
 
     print("课程读取完成，共有%d个章节可一键完成" % len(chapter_mission))
-    if len(chapter_mission) > 20:
-        print("章节数大于20，已为您自动启动多线程")
-        threadQueue = createThread(6, createQueue(chapter_mission), new_url_dict["cpi"])
-        for thread in threadQueue:
-            thread.start()  # 线程池启动
-        for thread in threadQueue:
-            thread.join()  # 线程池销毁
-    else:
-        deal_misson(chapter_mission, new_url_dict["cpi"], 0)
+    # if len(chapter_mission) > 20:
+    #     print("章节数大于20，已为您自动启动多线程")
+    #     threadQueue = createThread(6, createQueue(chapter_mission), new_url_dict["cpi"])
+    #     for thread in threadQueue:
+    #         thread.start()  # 线程池启动
+    #     for thread in threadQueue:
+    #         thread.join()  # 线程池销毁
+    # else:
+    deal_misson(chapter_mission, new_url_dict["cpi"], 0)
 
 
 # 递归读取所有课程信息，返回dict
@@ -286,26 +287,28 @@ def misson_video(objectId, otherInfo, jobid, name, reportUrl, clazzId):
     duration = status_json.get('duration')
     dtoken = status_json.get('dtoken')
     print(objectId, otherInfo, jobid, uid, name, duration, reportUrl)
-    multimedia_headers = {
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-        'Connection': 'keep-alive',
-        'Content-Type': 'application/json',
-        'Cookie': cookieStr,
-        'Host': 'mooc1-1.chaoxing.com',
-        'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
-        'Sec-Fetch-Dest': 'empty',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'same-origin',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
-    }
-    import time
-    elses = "/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=4&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken, clazzId, duration, objectId, otherInfo, jobid, uid, encode_enc(clazzId, duration, objectId, otherInfo, jobid, uid), int(time.time() * 1000))
+    # multimedia_headers = {
+    #     'Accept': '*/*',
+    #     'Accept-Encoding': 'gzip, deflate, br',
+    #     'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+    #     'Connection': 'keep-alive',
+    #     'Content-Type': 'application/json',
+    #     'Cookie': cookieStr,
+    #     'Host': 'mooc1-1.chaoxing.com',
+    #     'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
+    #     'Sec-Fetch-Dest': 'empty',
+    #     'Sec-Fetch-Mode': 'cors',
+    #     'Sec-Fetch-Site': 'same-origin',
+    #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+    # }
+
+    elses = "/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=0&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken, clazzId, duration, objectId, otherInfo, jobid, uid, encode_enc(clazzId, duration, objectId, otherInfo, jobid, uid,duration), int(time.time() * 1000))
     reportUrl_item = reportUrl + str(elses)
-    multimedia_rsp = requests.get(url=reportUrl_item, headers=multimedia_headers)
+    video_url_list.append(reportUrl_item)
+    # multimedia_rsp = requests.get(url=reportUrl_item, headers=multimedia_headers)
+    print("检测到一个视频节点，已添加到任务列表")
     return reportUrl_item
-    print(multimedia_rsp.text)
+
 
 
 # 处理live任务，核心为获取视频token
@@ -412,7 +415,23 @@ def medias_deal(data, clazzId, chapterId, courseId, chapterUrl):
             objectId = media_item.get("objectId")
             otherInfo = media_item.get("otherInfo")
             name = media_item.get('property').get('name')
-            misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=data["defaults"]["reportUrl"], clazzId=clazzId)
+            url_video = misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=data["defaults"]["reportUrl"], clazzId=clazzId)
+            multimedia_headers = {
+                'Accept': '*/*',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                'Connection': 'keep-alive',
+                'Content-Type': 'application/json',
+                'Cookie': cookieStr,
+                'Host': 'mooc1-1.chaoxing.com',
+                'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+            }
+            rsp = requests.get(url=url_video,headers=multimedia_headers)
+            print(rsp.text)
         elif media_type == "live":
             streamName = media_item.get("property").get("streamName")
             vdoid = media_item.get("property").get("vdoid")
@@ -562,6 +581,64 @@ def get_task_status(url: str):
                     return 0
 
 
+class video_nomal_thread(threading.Thread):
+    def __list_get(self,list: list):
+        if len(list):
+            return list[0]
+        else:
+            return ""
+
+    def __init__(self,url):
+        super(video_nomal_thread, self).__init__()
+        self.url=url
+        self.all_time = int(re.findall("duration=\\d+&",url)[0][9:-1])
+        self.multimedia_headers = {
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+            'Connection': 'keep-alive',
+            'Content-Type': 'application/json',
+            'Cookie': cookieStr,
+            'Host': 'mooc1.chaoxing.com',
+            'Referer': 'https://mooc1.chaoxing.com/ananas/modules/video/index.html?v=2020-1105-2010',
+            'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="90", "Microsoft Edge";v="90"',
+            'sec-ch-ua-mobile': '?0',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36 Edg/90.0.818.51'
+        }
+        self.clazzId=self.__list_get(re.findall("(?<=clazzId=)\\d+",self.url))
+        self.duration = self.__list_get(re.findall("(?<=duration=)\\d+", self.url))
+        self.objectId = self.__list_get(re.findall("(?<=objectId=)[0-9a-zA-Z]+", self.url))
+        self.otherInfo = self.__list_get(re.findall("(?<=otherInfo=)[a-z0-9A-Z_-]+", self.url))
+        self.jobid = self.__list_get(re.findall("(?<=jobid=)\\d+", self.url))
+        self.uid = self.__list_get(re.findall("(?<=userid=)\\d+", self.url))
+
+    def run(self) -> None:
+        rsp = requests.get(url=self.url_replace(0), headers=global_headers)
+        print(rsp.status_code)
+        cookieTmp = cookieStr
+        for item in rsp.cookies:
+            cookieTmp = cookieTmp + item.name + '=' + item.value + ';'
+        self.multimedia_headers.update({"Cookie":cookieTmp})
+        print("线程%s启动中，总任务时长%d秒"%(self.name,self.all_time))
+        time_now = 60
+        while time_now<self.all_time:
+            time.sleep(60)
+            rsp = requests.get(url=self.url_replace(time_now),headers=self.multimedia_headers)
+            print("线程%s运行中，当前时长:%d ,总时长:%d"%(self.name,time_now,self.all_time))
+            time_now = time_now+60
+        rsp = requests.get(url=self.url_replace(self.all_time), headers=self.multimedia_headers)
+        print("线程%s执行完成，任务状态:%s" % (self.name, rsp.text))
+
+    def url_replace(self,now_time:int) -> str:
+        enc_tmp = encode_enc(self.clazzId, int(self.duration), self.objectId, self.otherInfo, self.jobid, self.uid, str(now_time))
+        url_tmp = re.sub("playingTime=\\d+", "playingTime=%d" % now_time, self.url)
+        url_tmp = re.sub("enc=[0-9a-zA-Z]+", "enc=%s" % enc_tmp, url_tmp)
+        return url_tmp
+
+
 # 自定义任务类，处理菜单任务
 class Things():
     def __init__(self, username='nobody'):
@@ -599,7 +676,24 @@ class Things():
                         print("'%s'并不是可识别的序号，请您重新检查后输入" % enter)
                         continue
                     deal_course_select(course_dict[int(enter)][1])
-                    input("\n任务已完成，回车返回主菜单")
+                    if len(video_url_list)==0:
+
+                        input("\n任务已完成，回车返回主菜单")
+                    else:
+                        print("除视频节点外任务已完成，接下来将对剩下的%d个视频节点进行处理"%len(video_url_list))
+                        video_nomal_thread_pool=[]
+                        for video_item in video_url_list:
+                            video_nomal_thread_pool.append(video_nomal_thread(video_item))
+                        for item in video_nomal_thread_pool:
+                            item.start()
+                            time.sleep(1)
+                        print("\n视频线程已全部启动\n")
+                        for item in video_nomal_thread_pool:
+                            item.join()
+                        print("任务执行完成")
+
+
+
                     break
             except Exception as e:
                 print("error:%s" % e)
@@ -715,8 +809,25 @@ class Menu():
     def quit(self):
         sys.exit(0)
 
+def before_start()->None:
+    print("欢迎您使用 chaoxing_tool , 本工具是针对超星(学习通)所编写的Python脚本工具")
+    print("本工具完全免费且开源，项目地址: https://github.com/liuyunfz/chaoxing_tool")
+    print("使用前请确认您使用的是最新版，防止因为超星系统更新导致的功能失效")
+
+    print("\n且确认以下须知与功能介绍:")
+    print("1.本项目支持一键完成的任务点不包括考试与测试")
+    print("2.输入密码时会被自动隐藏，防止您的密码被偷窥")
+    print("3.项目不能完全保证不被系统识别异常，请理性使用")
+    print("4.所有功能均采用发送GET/POST请求包完成，效率更高且占用资源低")
+    print("5.功能1 - 一键完成所有课程的所有任务点中视频为立即完成，可能产生异常，请谨慎使用")
+    print("6.功能2 - 一键完成单个课程的所有任务点中视频为同时长完成，防止由学习时间不够引发的超星异常提示")
+    print("7.如果您在使用中有疑问或者遇到了BUG，请前往提交Issue: https://github.com/liuyunfz/chaoxing_tool/issues")
+
+    input("\n回车确认后正式使用本软件:")
+
 
 if __name__ == "__main__":
+    before_start()
     step_1()
     step_2()
     Menu().run()
