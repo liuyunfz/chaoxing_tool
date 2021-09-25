@@ -15,10 +15,12 @@ from lxml import etree
 
 global video_url_list
 video_url_list = []
+
+
 # 视频任务enc校验计算
-def encode_enc(clazzid: str, duration: int, objectId: str, otherinfo: str, jobid: str, userid: str,currentTimeSec :str):
+def encode_enc(clazzid: str, duration: int, objectId: str, otherinfo: str, jobid: str, userid: str, currentTimeSec: str):
     import hashlib
-    data = "[{0}][{1}][{2}][{3}][{4}][{5}][{6}][0_{7}]".format(clazzid, userid, jobid, objectId, int(currentTimeSec)  * 1000, "d_yHJ!$pdA~5", duration * 1000, duration)
+    data = "[{0}][{1}][{2}][{3}][{4}][{5}][{6}][0_{7}]".format(clazzid, userid, jobid, objectId, int(currentTimeSec) * 1000, "d_yHJ!$pdA~5", duration * 1000, duration)
     print(data)
     return hashlib.md5(data.encode()).hexdigest()
 
@@ -302,13 +304,12 @@ def misson_video(objectId, otherInfo, jobid, name, reportUrl, clazzId):
     #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
     # }
 
-    elses = "/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=0&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken, clazzId, duration, objectId, otherInfo, jobid, uid, encode_enc(clazzId, duration, objectId, otherInfo, jobid, uid,duration), int(time.time() * 1000))
+    elses = "/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=0&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken, clazzId, duration, objectId, otherInfo, jobid, uid, encode_enc(clazzId, duration, objectId, otherInfo, jobid, uid, duration), int(time.time() * 1000))
     reportUrl_item = reportUrl + str(elses)
     video_url_list.append(reportUrl_item)
     # multimedia_rsp = requests.get(url=reportUrl_item, headers=multimedia_headers)
     print("检测到一个视频节点，已添加到任务列表")
     return reportUrl_item
-
 
 
 # 处理live任务，核心为获取视频token
@@ -430,7 +431,7 @@ def medias_deal(data, clazzId, chapterId, courseId, chapterUrl):
                 'Sec-Fetch-Site': 'same-origin',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
             }
-            rsp = requests.get(url=url_video,headers=multimedia_headers)
+            rsp = requests.get(url=url_video, headers=multimedia_headers)
             print(rsp.text)
         elif media_type == "live":
             streamName = media_item.get("property").get("streamName")
@@ -455,7 +456,10 @@ def medias_download(medias):
         status_rsp = requests.get(url="https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(objectid), headers=global_headers)
         status_json = json.loads(status_rsp.text)
         filename = status_json.get('filename')
-        download = status_json.get('download')
+        if status_json.get("pagenum") != None:
+            download = status_json.get('pdf')
+        else:
+            download = status_json.get('http')
         i += 1
         downloads_dict[i] = [filename, download]
         print(i, ".       ", filename)
@@ -464,11 +468,16 @@ def medias_download(medias):
         return False
     enter = input("请输入你要下载资源的序号，以逗号分隔：")
     enter_list = enter.split(",")
+    download_headers = global_headers
+    download_headers.update({
+        "referer": "https://mooc1-2.chaoxing.com/ananas/modules/video/index.html?v=2021-0924-1446",
+        "Host": "s1.ananas.chaoxing.com"
+    })
     for media_index in enter_list:
         try:
             with open(downloads_dict[int(media_index)][0], "wb") as f:
                 print("\n正在下载%s..." % downloads_dict[int(media_index)][0])
-                rsp = requests.get(url=downloads_dict[int(media_index)][1], headers=global_headers, stream=True)
+                rsp = requests.get(url=downloads_dict[int(media_index)][1], headers=download_headers, stream=True)
                 length_already = 0
                 length_all = int(rsp.headers['content-length'])
                 for chunk in rsp.iter_content(chunk_size=5242880):
@@ -476,7 +485,7 @@ def medias_download(medias):
                         length_already += len(chunk)
                         print("\r下载进度：%d%%" % int(length_already / length_all * 100), end="", flush=True)
                         f.write(chunk)
-                print("\n下载完成")
+                print("\n下载完成,其中PPT请手动修改后缀为PDF打开")
                 f.close()
         except OSError:
             new_name = str(int(time.time())) + os.path.splitext(downloads_dict[int(media_index)][0])[-1]
@@ -560,9 +569,9 @@ def get_task_status(url: str):
             if chapterId:
                 break
         # print(chapterId)
-        cardcount=int(read_cardcount(courseId,clazzId,chapterId,cpi))
+        cardcount = int(read_cardcount(courseId, clazzId, chapterId, cpi))
         for i in range(cardcount):
-            medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, cpi,i)
+            medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, cpi, i)
             medias_rsp = requests.get(url=medias_url, headers=global_headers)
             medias_HTML = etree.HTML(medias_rsp.text)
             medias_text = medias_HTML.xpath("//script[1]/text()")[0]
@@ -582,16 +591,16 @@ def get_task_status(url: str):
 
 
 class video_nomal_thread(threading.Thread):
-    def __list_get(self,list: list):
+    def __list_get(self, list: list):
         if len(list):
             return list[0]
         else:
             return ""
 
-    def __init__(self,url):
+    def __init__(self, url):
         super(video_nomal_thread, self).__init__()
-        self.url=url
-        self.all_time = int(re.findall("duration=\\d+&",url)[0][9:-1])
+        self.url = url
+        self.all_time = int(re.findall("duration=\\d+&", url)[0][9:-1])
         self.multimedia_headers = {
             'Accept': '*/*',
             'Accept-Encoding': 'gzip, deflate, br',
@@ -608,7 +617,7 @@ class video_nomal_thread(threading.Thread):
             'Sec-Fetch-Site': 'same-origin',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36 Edg/90.0.818.51'
         }
-        self.clazzId=self.__list_get(re.findall("(?<=clazzId=)\\d+",self.url))
+        self.clazzId = self.__list_get(re.findall("(?<=clazzId=)\\d+", self.url))
         self.duration = self.__list_get(re.findall("(?<=duration=)\\d+", self.url))
         self.objectId = self.__list_get(re.findall("(?<=objectId=)[0-9a-zA-Z]+", self.url))
         self.otherInfo = self.__list_get(re.findall("(?<=otherInfo=)[a-z0-9A-Z_-]+", self.url))
@@ -621,18 +630,18 @@ class video_nomal_thread(threading.Thread):
         cookieTmp = cookieStr
         for item in rsp.cookies:
             cookieTmp = cookieTmp + item.name + '=' + item.value + ';'
-        self.multimedia_headers.update({"Cookie":cookieTmp})
-        print("线程%s启动中，总任务时长%d秒"%(self.name,self.all_time))
+        self.multimedia_headers.update({"Cookie": cookieTmp})
+        print("线程%s启动中，总任务时长%d秒" % (self.name, self.all_time))
         time_now = 60
-        while time_now<self.all_time:
+        while time_now < self.all_time:
             time.sleep(60)
-            rsp = requests.get(url=self.url_replace(time_now),headers=self.multimedia_headers)
-            print("线程%s运行中，当前时长:%d ,总时长:%d"%(self.name,time_now,self.all_time))
-            time_now = time_now+60
+            rsp = requests.get(url=self.url_replace(time_now), headers=self.multimedia_headers)
+            print("线程%s运行中，当前时长:%d ,总时长:%d" % (self.name, time_now, self.all_time))
+            time_now = time_now + 60
         rsp = requests.get(url=self.url_replace(self.all_time), headers=self.multimedia_headers)
         print("线程%s执行完成，任务状态:%s" % (self.name, rsp.text))
 
-    def url_replace(self,now_time:int) -> str:
+    def url_replace(self, now_time: int) -> str:
         enc_tmp = encode_enc(self.clazzId, int(self.duration), self.objectId, self.otherInfo, self.jobid, self.uid, str(now_time))
         url_tmp = re.sub("playingTime=\\d+", "playingTime=%d" % now_time, self.url)
         url_tmp = re.sub("enc=[0-9a-zA-Z]+", "enc=%s" % enc_tmp, url_tmp)
@@ -676,12 +685,12 @@ class Things():
                         print("'%s'并不是可识别的序号，请您重新检查后输入" % enter)
                         continue
                     deal_course_select(course_dict[int(enter)][1])
-                    if len(video_url_list)==0:
+                    if len(video_url_list) == 0:
 
                         input("\n任务已完成，回车返回主菜单")
                     else:
-                        print("除视频节点外任务已完成，接下来将对剩下的%d个视频节点进行处理"%len(video_url_list))
-                        video_nomal_thread_pool=[]
+                        print("除视频节点外任务已完成，接下来将对剩下的%d个视频节点进行处理" % len(video_url_list))
+                        video_nomal_thread_pool = []
                         for video_item in video_url_list:
                             video_nomal_thread_pool.append(video_nomal_thread(video_item))
                         for item in video_nomal_thread_pool:
@@ -691,8 +700,6 @@ class Things():
                         for item in video_nomal_thread_pool:
                             item.join()
                         print("任务执行完成")
-
-
 
                     break
             except Exception as e:
@@ -809,7 +816,8 @@ class Menu():
     def quit(self):
         sys.exit(0)
 
-def before_start()->None:
+
+def before_start() -> None:
     print("欢迎您使用 chaoxing_tool , 本工具是针对超星(学习通)所编写的Python脚本工具")
     print("本工具完全免费且开源，项目地址: https://github.com/liuyunfz/chaoxing_tool")
     print("使用前请确认您使用的是最新版，防止因为超星系统更新导致的功能失效")
