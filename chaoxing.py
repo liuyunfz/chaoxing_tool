@@ -368,6 +368,26 @@ def misson_book(jobid, chapterId, courseid, clazzid, jtoken):
     multimedia_rsp = requests.get(url=url, headers=multimedia_headers)
     print(multimedia_rsp.text)
 
+# 处理read任务，核心为jtoken
+def misson_reed(jobid, chapterId, courseid, clazzid, jtoken):
+    multimedia_headers = {
+        'Accept': '*/*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Connection': 'keep-alive',
+        'Cookie': cookieStr,
+        'Host': 'mooc1-2.chaoxing.com',
+        'Referer': 'https://mooc1-2.chaoxing.com/ananas/modules/innerbook/index.html?v=2018-0126-1905',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36 Edg/87.0.664.52',
+        'X-Requested-With': 'XMLHttpRequest'
+    }
+    url = 'https://mooc1-2.chaoxing.com/ananas/job/readv2?jobid={0}&knowledgeid={1}&courseid={2}&clazzid={3}&jtoken={4}&_dc={5}'.format(jobid, chapterId, courseid, clazzid, jtoken, int(time.time() * 1000))
+    multimedia_rsp = requests.get(url=url, headers=multimedia_headers)
+    print(multimedia_rsp.text)
+
 
 # 课程学习次数
 def set_log(course_url: str):
@@ -417,22 +437,22 @@ def medias_deal(data, clazzId, chapterId, courseId, chapterUrl):
             otherInfo = media_item.get("otherInfo")
             name = media_item.get('property').get('name')
             url_video = misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=data["defaults"]["reportUrl"], clazzId=clazzId)
-            multimedia_headers = {
-                'Accept': '*/*',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-                'Connection': 'keep-alive',
-                'Content-Type': 'application/json',
-                'Cookie': cookieStr,
-                'Host': 'mooc1-1.chaoxing.com',
-                'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-origin',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
-            }
-            rsp = requests.get(url=url_video, headers=multimedia_headers)
-            print(rsp.text)
+            # multimedia_headers = {
+            #     'Accept': '*/*',
+            #     'Accept-Encoding': 'gzip, deflate, br',
+            #     'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+            #     'Connection': 'keep-alive',
+            #     'Content-Type': 'application/json',
+            #     'Cookie': cookieStr,
+            #     'Host': 'mooc1-1.chaoxing.com',
+            #     'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
+            #     'Sec-Fetch-Dest': 'empty',
+            #     'Sec-Fetch-Mode': 'cors',
+            #     'Sec-Fetch-Site': 'same-origin',
+            #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+            # }
+            # rsp = requests.get(url=url_video, headers=multimedia_headers)
+            # print(rsp.text)
         elif media_type == "live":
             streamName = media_item.get("property").get("streamName")
             vdoid = media_item.get("property").get("vdoid")
@@ -443,6 +463,9 @@ def medias_deal(data, clazzId, chapterId, courseId, chapterUrl):
         elif "bookname" in media_item["property"]:
             jtoken = media_item.get("jtoken")
             misson_book(jobid, chapterId, courseId, clazzId, jtoken)
+        elif media_type == "read":
+            jtoken = media_item.get("jtoken")
+            misson_read(jobid, chapterId, courseId, clazzId, jtoken)
 
 
 # 下载媒体
@@ -684,6 +707,7 @@ class Things():
                     except:
                         print("'%s'并不是可识别的序号，请您重新检查后输入" % enter)
                         continue
+                    video_url_list = []
                     deal_course_select(course_dict[int(enter)][1])
                     if len(video_url_list) == 0:
 
