@@ -368,6 +368,7 @@ def misson_book(jobid, chapterId, courseid, clazzid, jtoken):
     multimedia_rsp = requests.get(url=url, headers=multimedia_headers)
     print(multimedia_rsp.text)
 
+
 # 处理read任务，核心为jtoken
 def misson_reed(jobid, chapterId, courseid, clazzid, jtoken):
     multimedia_headers = {
@@ -656,11 +657,12 @@ class video_nomal_thread(threading.Thread):
         self.multimedia_headers.update({"Cookie": cookieTmp})
         print("线程%s启动中，总任务时长%d秒" % (self.name, self.all_time))
         time_now = 60
-        while time_now < self.all_time:
+        while time_now < self.all_time + 60:
             time.sleep(60)
             rsp = requests.get(url=self.url_replace(time_now), headers=self.multimedia_headers)
             print("线程%s运行中，当前时长:%d ,总时长:%d" % (self.name, time_now, self.all_time))
             time_now = time_now + 60
+
         rsp = requests.get(url=self.url_replace(self.all_time), headers=self.multimedia_headers)
         print("线程%s执行完成，任务状态:%s" % (self.name, rsp.text))
 
@@ -683,10 +685,51 @@ class Things():
         enter = input("\n确认要一键完成以上所有课程吗？(回车确认，任意其他输入则取消并返回主菜单)")
         if enter == "":
             print("开始处理课程中....\n")
+            global video_url_list
+            video_url_list = []
             for course_item in course_dict:
                 print("开始处理'%s'..." % course_dict[course_item][0])
                 deal_course_select(course_dict[course_item][1])
                 print("'%s' 课程处理完成\n" % course_dict[course_item][0])
+            if len(video_url_list) == 0:
+                input("\n任务已完成，回车返回主菜单")
+            else:
+                print("除视频节点外任务已完成，接下来将对剩下的%d个视频节点进行处理" % len(video_url_list))
+                speed = input("请选择视频节点的完成方式 1.立即完成(1秒即可完成视频任务点) 2.常规速度完成(完成时间与视频时间等长) :")
+                while speed != "1" and speed != "2":
+                    print("请输入正常的序号")
+                    speed = input("请选择视频节点的完成方式 1.立即完成(1秒即可完成视频任务点) 2.常规速度完成(完成时间与视频时间等长) :")
+                if speed == "1":
+                    for item in video_url_list:
+                        multimedia_headers = {
+                            'Accept': '*/*',
+                            'Accept-Encoding': 'gzip, deflate, br',
+                            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                            'Connection': 'keep-alive',
+                            'Content-Type': 'application/json',
+                            'Cookie': cookieStr,
+                            'Host': 'mooc1-1.chaoxing.com',
+                            'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
+                            'Sec-Fetch-Dest': 'empty',
+                            'Sec-Fetch-Mode': 'cors',
+                            'Sec-Fetch-Site': 'same-origin',
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+                        }
+                        rsp = requests.get(url=item.replace("isdrag=0","isdrag=4"), headers=multimedia_headers)
+                        print(rsp.text)
+                else:
+
+                    video_nomal_thread_pool = []
+                    for video_item in video_url_list:
+                        video_nomal_thread_pool.append(video_nomal_thread(video_item))
+                    for item in video_nomal_thread_pool:
+                        item.start()
+                        time.sleep(1)
+                    print("\n视频线程已全部启动\n")
+                    for item in video_nomal_thread_pool:
+                        item.join()
+                print("任务执行完成")
+
             print("所有课程处理完成，请手动登陆网站进行查看，如有疑问请联系作者。")
         else:
             pass
@@ -707,6 +750,7 @@ class Things():
                     except:
                         print("'%s'并不是可识别的序号，请您重新检查后输入" % enter)
                         continue
+                    global video_url_list
                     video_url_list = []
                     deal_course_select(course_dict[int(enter)][1])
                     if len(video_url_list) == 0:
@@ -714,15 +758,39 @@ class Things():
                         input("\n任务已完成，回车返回主菜单")
                     else:
                         print("除视频节点外任务已完成，接下来将对剩下的%d个视频节点进行处理" % len(video_url_list))
-                        video_nomal_thread_pool = []
-                        for video_item in video_url_list:
-                            video_nomal_thread_pool.append(video_nomal_thread(video_item))
-                        for item in video_nomal_thread_pool:
-                            item.start()
-                            time.sleep(1)
-                        print("\n视频线程已全部启动\n")
-                        for item in video_nomal_thread_pool:
-                            item.join()
+                        speed = input("请选择视频节点的完成方式 1.立即完成(1秒即可完成视频任务点) 2.常规速度完成(完成时间与视频时间等长) :")
+                        while speed != "1" and speed != "2":
+                            print("请输入正常的序号")
+                            speed = input("请选择视频节点的完成方式 1.立即完成(1秒即可完成视频任务点) 2.常规速度完成(完成时间与视频时间等长) :")
+                        if speed == "1":
+                            for item in video_url_list:
+                                multimedia_headers = {
+                                    'Accept': '*/*',
+                                    'Accept-Encoding': 'gzip, deflate, br',
+                                    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                                    'Connection': 'keep-alive',
+                                    'Content-Type': 'application/json',
+                                    'Cookie': cookieStr,
+                                    'Host': 'mooc1-1.chaoxing.com',
+                                    'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
+                                    'Sec-Fetch-Dest': 'empty',
+                                    'Sec-Fetch-Mode': 'cors',
+                                    'Sec-Fetch-Site': 'same-origin',
+                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+                                }
+                                rsp = requests.get(url=item.replace("isdrag=0","isdrag=4"), headers=multimedia_headers)
+                                print(rsp.text)
+                        else:
+
+                            video_nomal_thread_pool = []
+                            for video_item in video_url_list:
+                                video_nomal_thread_pool.append(video_nomal_thread(video_item))
+                            for item in video_nomal_thread_pool:
+                                item.start()
+                                time.sleep(1)
+                            print("\n视频线程已全部启动\n")
+                            for item in video_nomal_thread_pool:
+                                item.join()
                         print("任务执行完成")
 
                     break
@@ -851,8 +919,8 @@ def before_start() -> None:
     print("2.输入密码时会被自动隐藏，防止您的密码被偷窥")
     print("3.项目不能完全保证不被系统识别异常，请理性使用")
     print("4.所有功能均采用发送GET/POST请求包完成，效率更高且占用资源低")
-    print("5.功能1 - 一键完成所有课程的所有任务点中视频为立即完成，可能产生异常，请谨慎使用")
-    print("6.功能2 - 一键完成单个课程的所有任务点中视频为同时长完成，防止由学习时间不够引发的超星异常提示")
+    print("5.完成课程任务点中的视频任务点会在最后统一处理，由用户决定完成方式")
+    print("6.其中快速完成可能会导致异常，而常规完成则会同步视频时长完成（需要保证软件保持开启状态）用于避免可能由时长带来的异常")
     print("7.如果您在使用中有疑问或者遇到了BUG，请前往提交Issue: https://github.com/liuyunfz/chaoxing_tool/issues")
 
     input("\n回车确认后正式使用本软件:")
