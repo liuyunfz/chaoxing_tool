@@ -370,7 +370,7 @@ def misson_book(jobid, chapterId, courseid, clazzid, jtoken):
 
 
 # 处理read任务，核心为jtoken
-def misson_reed(jobid, chapterId, courseid, clazzid, jtoken):
+def misson_read(jobid, chapterId, courseid, clazzid, jtoken):
     multimedia_headers = {
         'Accept': '*/*',
         'Accept-Encoding': 'gzip, deflate, br',
