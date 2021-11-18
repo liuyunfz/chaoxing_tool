@@ -57,7 +57,7 @@ def step_1():
         os.system("cls")
         uname = input("请输入您的手机号:")
         import getpass
-        password = getpass.getpass("请输入您的密码:")
+        password = getpass.getpass("请输入您的密码(已自动隐藏,请放心输入):")
         sign_in_rsp = sign_in(uname, password)
         sign_in_json = sign_in_rsp.json()
         if sign_in_json['status'] == False:
@@ -582,6 +582,7 @@ def get_task_status(url: str):
     already_time = float(__list_get(re.findall("[0-9]+[.]?[0-9]?", __list_get(rsp_html.xpath("//div[@class='fl min']/span/text()")))))
     all_time = float(__list_get(re.findall("[0-9]+[.]?[0-9]?", __list_get(rsp_html.xpath("//p[@class='bottomC fs12']/text()")))))
     print(already_time, "/", all_time)
+    chapterId = False
     if already_time < all_time:
         datal_url = "https://stat2-ans.chaoxing.com/task/s/progress/detail?clazzid={0}&courseid={1}&cpi={2}&ut=s&page=1&pageSize=16&status=0".format(clazzId, courseId, cpi)
         rsp = requests.get(url=datal_url, headers=global_headers)
