@@ -409,20 +409,24 @@ def deal_misson(missons: list, class_cpi: str, mode: int):
         chapterId = chapter_data.get('chapterId')[0]
         cardcount = int(read_cardcount(courseId, clazzId, chapterId, class_cpi))
         for num in range(cardcount):
-            print("num:", num)
-            medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, class_cpi, num)
-            medias_rsp = requests.get(url=medias_url, headers=global_headers)
-            medias_HTML = etree.HTML(medias_rsp.text)
-            medias_text = medias_HTML.xpath("//script[1]/text()")[0]
-            pattern = re.compile(r"mArg = ({[\s\S]*)}catch")
-            datas = re.findall(pattern, medias_text)[0]
-            datas = json.loads(datas.strip()[:-1])
-            if mode == 0:
-                # mode 0 deal misson
-                medias_deal(datas, clazzId, chapterId, courseId, chapter_mission_item)
-            else:
-                # mode 1 download medias
-                medias_download(datas["attachments"])
+            try:
+                print("num:", num)
+                medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, class_cpi, num)
+                medias_rsp = requests.get(url=medias_url, headers=global_headers)
+                medias_HTML = etree.HTML(medias_rsp.text)
+                medias_text = medias_HTML.xpath("//script[1]/text()")[0]
+                pattern = re.compile(r"mArg = ({[\s\S]*)}catch")
+                datas = re.findall(pattern, medias_text)[0]
+                datas = json.loads(datas.strip()[:-1])
+                if mode == 0:
+                    # mode 0 deal misson
+                    medias_deal(datas, clazzId, chapterId, courseId, chapter_mission_item)
+                else:
+                    # mode 1 download medias
+                    medias_download(datas["attachments"])
+            except:
+                print(medias_url+" error")
+                continue
 
 
 # 判断媒体类型并处理
