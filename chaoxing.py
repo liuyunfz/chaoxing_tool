@@ -107,7 +107,9 @@ def step_2():
 def url_302(oldUrl: str):
     # 302跳转，requests库默认追踪headers里的location进行跳转，使用allow_redirects=False
     course_302_rsp = requests.get(url=oldUrl, headers=global_headers, allow_redirects=False)
-    new_url = course_302_rsp.headers['Location']
+    new_url = course_302_rsp.headers.get("Location")
+    if new_url == None:
+        new_url = oldUrl
     result = parse.urlparse(new_url)
     new_url_data = parse.parse_qs(result.query)
     try:
@@ -394,6 +396,7 @@ def misson_read(jobid, chapterId, courseid, clazzid, jtoken):
 def set_log(course_url: str):
     course_rsp = requests.get(url=url_302(course_url)["new_url"], headers=global_headers)
     course_HTML = etree.HTML(course_rsp.text)
+    #TODO：人脸检测验证
     log_url = course_HTML.xpath("/html/body/script[11]/@src")[0]
     rsp = requests.get(url=log_url, headers=global_headers)
     print(rsp.text)
@@ -840,8 +843,16 @@ class Things():
                         print("错误输入\n")
                         continue
                     try:
+                        try:
+                            print("未防止频次过快的次数刷取造成理论与实际误差较大，需要您手动指定每次次数刷取的间隔")
+                            delay = input("请输入间隔时间(单位秒)：")
+                            delay = int(delay)
+                        except:
+                            print("错误输入,已使用默认延时:1s\n")
+                            delay = 1
                         for num in range(count):
                             set_log(course_dict[int(enter)][1])
+                            time.sleep(delay)
                         input("\n任务已完成，回车返回主菜单")
                         break
                     except Exception as e:
