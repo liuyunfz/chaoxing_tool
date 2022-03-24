@@ -4,6 +4,7 @@ import json
 import re
 import threading
 from queue import Queue
+from turtle import st
 from urllib import parse
 
 import base64
@@ -15,8 +16,7 @@ from lxml import etree
 
 global video_url_list
 video_url_list = []
-
-
+class_list = []
 # 视频任务enc校验计算
 def encode_enc(clazzid: str, duration: int, objectId: str, otherinfo: str, jobid: str, userid: str, currentTimeSec: str):
     import hashlib
@@ -722,8 +722,6 @@ class video_nomal_thread(threading.Thread):
         url_tmp = re.sub("playingTime=\\d+", "playingTime=%d" % now_time, self.url)
         url_tmp = re.sub("enc=[0-9a-zA-Z]+", "enc=%s" % enc_tmp, url_tmp)
         return url_tmp
-
-
 # 自定义任务类，处理菜单任务
 class Things():
     def __init__(self, username='nobody'):
@@ -832,7 +830,6 @@ class Things():
                                 rsp = requests.get(url=item.replace("isdrag=0", "isdrag=4"), headers=multimedia_headers)
                                 print(rsp.text)
                         else:
-
                             video_nomal_thread_pool = []
                             for video_item in video_url_list:
                                 video_nomal_thread_pool.append(video_nomal_thread(video_item))
@@ -847,7 +844,7 @@ class Things():
                     break
             except Exception as e:
                 print("error:%s" % e)
-
+    # 下载课程
     def misson_3(self):
         os.system("cls")
         print("您所加入的课程如下：")
@@ -868,7 +865,7 @@ class Things():
                     break
             except Exception as e:
                 print("error:%s" % e)
-
+    # 刷学习次数
     def misson_4(self):
         os.system("cls")
         print("您所加入的课程如下：")
@@ -917,15 +914,64 @@ class Things():
             time.sleep(10)
         for j in threadPool:
             j.join()
-
+    # 清屏
     def misson_6(self):
         os.system("cls")
-
     def misson_7(self):
         step_1()
         step_2()
-
-
+    # 批量刷选择的课程
+    def misson_8(self):
+        os.system("cls")
+        print("您所加入的课程如下：")
+        for i in range(len(course_dict)):
+            print("%d.%s" % (i + 1, course_dict[i + 1][0]))
+        while True:
+            enter = True
+            enter = input("输入你要完成的课程序号(输入q回退主菜单 end结束输入)：")
+            if enter!="end":
+                class_list.append(enter)
+            try:
+                if enter == "q":
+                    break
+                elif enter == "end":
+                    try:
+                        name_couse = ""
+                        j = 0
+                        for j in range(len(class_list)):
+                            name_couse = name_couse+""+str(course_dict[int(class_list[j])][0])
+                        input("请确认您要完成'%s'"%name_couse+"这些课程")
+                    except:
+                        print("'%s'并不是可识别的序号，请您重新检查后输入" % enter)
+                        continue
+                    global video_url_list
+                    video_url_list = []
+                    for i in class_list:
+                        deal_course_select(course_dict[int(i)][1])
+                        for item in video_url_list:
+                            multimedia_headers = {
+                                    'Accept': '*/*',
+                                    'Accept-Encoding': 'gzip, deflate, br',
+                                    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                                    'Connection': 'keep-alive',
+                                    'Content-Type': 'application/json',
+                                    'Cookie': cookieStr,
+                                    'Host': 'mooc1-1.chaoxing.com',
+                                    'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
+                                    'Sec-Fetch-Dest': 'empty',
+                                    'Sec-Fetch-Mode': 'cors',
+                                    'Sec-Fetch-Site': 'same-origin',
+                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+                                }
+                            rsp = requests.get(url=item.replace("isdrag=0","isdrag=4"), headers=multimedia_headers)
+                            print(rsp.text)
+                    break
+            except Exception as e:
+                print("error:%s" % e)
+        return 0
+    # 选择视频播放的时间
+    def choose_mode():
+        return 0
 class Menu():
     def __init__(self):
         self.thing = Things()
@@ -937,7 +983,8 @@ class Menu():
             "5": self.thing.misson_5,
             "6": self.thing.misson_6,
             "7": self.thing.misson_7,
-            "8": self.quit
+            "8": self.quit,
+            "9":self.thing.misson_8
         }
 
     def display_menu(self):
@@ -945,6 +992,7 @@ class Menu():
 菜单：
 1.一键完成所有课程中的任务节点(不包含测验)
 2.完成单个课程中的所有任务节点(不包含测验)
+9.完成选择的课程的所任务节点（不包含测验）
 3.下载课程资源(mp4,pdf,pptx,png等)
 4.刷取课程学习次数
 5.刷取视频学习时间
@@ -952,7 +1000,6 @@ class Menu():
 7.退出当前账号，重新登陆
 8.退出本程序
         """)
-
     def run(self):
         while True:
             self.display_menu()
@@ -966,8 +1013,6 @@ class Menu():
 
     def quit(self):
         sys.exit(0)
-
-
 def before_start() -> None:
     print("欢迎您使用 chaoxing_tool , 本工具是针对超星(学习通)所编写的Python脚本工具")
     print("本工具完全免费且开源，项目地址: https://github.com/liuyunfz/chaoxing_tool")
@@ -984,9 +1029,12 @@ def before_start() -> None:
 
     input("\n回车确认后正式使用本软件:")
 
-
 if __name__ == "__main__":
     before_start()
     step_1()
     step_2()
     Menu().run()
+
+
+    
+
