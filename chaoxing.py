@@ -286,7 +286,11 @@ def read_cardcount(courseId: str, clazzid: str, chapterId: str, cpi: str):
 # 处理video任务,校验为enc
 def misson_video(objectId, otherInfo, jobid, name, reportUrl, clazzId):
     status_url = "https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(objectId)
-    status_rsp = requests.get(url=status_url, headers=global_headers)
+    misson_headers={
+        "Referer":"https://mooc1.chaoxing.com/ananas/modules/video/index.html?v=2022-0329-1945"
+    }
+    misson_headers.update(global_headers)
+    status_rsp = requests.get(url=status_url, headers=misson_headers)
     status_json = json.loads(status_rsp.text)
     duration = status_json.get('duration')
     dtoken = status_json.get('dtoken')
@@ -427,8 +431,8 @@ def deal_misson(missons: list, class_cpi: str, mode: int):
                 else:
                     # mode 1 download medias
                     medias_download(datas["attachments"])
-            except:
-                print(medias_url+" error")
+            except Exception as e:
+                print(medias_url+" error",e)
                 continue
 
 
