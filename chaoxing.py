@@ -97,6 +97,25 @@ def step_2():
                 course_dict[i] = [class_item_name, "https://mooc1-2.chaoxing.com{}".format(class_item.xpath("./div[1]/a[1]/@href")[0])]
             except:
                 pass
+    # TODO: new API
+    # class_url = "http://mooc2-ans.chaoxing.com/visit/courses/list?v=1649759111895&rss=1&start=0&size=500&catalogId=0&searchname="
+    # class_rsp = requests.get(url=class_url, headers=global_headers)
+    # if class_rsp.status_code == 200:
+    #     class_HTML = etree.HTML(class_rsp.text)
+    #     os.system("cls")
+    #     print("处理成功，您当前已开启的课程如下：\n")
+    #     i = 0
+    #     global course_dict
+    #     course_dict = {}
+    #     for class_item in class_HTML.xpath('/html/body/div[3]/ul[1]/li'):
+    #         try:
+    #             class_item_name = class_item.xpath("./div[2]/h3/a/span/@title")[0]
+    #             # 等待开课的课程由于尚未对应链接，所以缺少a标签。
+    #             i += 1
+    #             print(class_item_name)
+    #             course_dict[i] = [class_item_name, class_item.xpath("./div[2]/h3/a/@href")[0]]
+    #         except:
+    #             pass
         print("———————————————————————————————————")
     else:
         print("课程处理失败，请联系作者")
@@ -310,7 +329,7 @@ def misson_video(objectId, otherInfo, jobid, name, reportUrl, clazzId):
     #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
     # }
 
-    elses = "/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=0&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken, clazzId, duration, objectId, otherInfo, jobid, uid, encode_enc(clazzId, duration, objectId, otherInfo, jobid, uid, duration), int(time.time() * 1000))
+    elses = "/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=0&view=pc&enc={7}&rt=1&dtype=Video&_t={8}".format(dtoken, clazzId, duration, objectId, otherInfo, jobid, uid, encode_enc(clazzId, duration, objectId, otherInfo, jobid, uid, duration), int(time.time() * 1000))
     reportUrl_item = reportUrl + str(elses)
     video_url_list.append(reportUrl_item)
     # multimedia_rsp = requests.get(url=reportUrl_item, headers=multimedia_headers)
@@ -575,7 +594,12 @@ class VideoThread(threading.Thread):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36 Edg/90.0.818.51'
         }
         while True:
-            print(self.name, requests.get(url=self.post_url, headers=headers).text)
+            rsp = requests.get(url=self.post_url, headers=headers)
+            if rsp.status_code !=200:
+                print(self.post_url,self.name,"error!")
+                self.post_url = self.post_url.replace("mooc1-2", "mooc1")
+            else:
+                print(self.name,rsp.text)
             time.sleep(60)
 
 
@@ -607,23 +631,28 @@ def get_task_status(url: str):
         # print(chapterId)
         cardcount = int(read_cardcount(courseId, clazzId, chapterId, cpi))
         for i in range(cardcount):
-            medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, cpi, i)
-            medias_rsp = requests.get(url=medias_url, headers=global_headers)
-            medias_HTML = etree.HTML(medias_rsp.text)
-            medias_text = medias_HTML.xpath("//script[1]/text()")[0]
-            pattern = re.compile(r"mArg = ({[\s\S]*)}catch")
-            datas = re.findall(pattern, medias_text)[0]
-            datas = json.loads(datas.strip()[:-1])
-            for media_item in datas["attachments"]:
-                media_type = media_item.get("type")
-                jobid = media_item.get("jobid")
-                if media_type == "video":
-                    objectId = media_item.get("objectId")
-                    otherInfo = media_item.get("otherInfo")
-                    name = media_item.get('property').get('name')
-                    return VideoThread(misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId), name=name)
-                else:
-                    return 0
+            try:
+                medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, cpi, i)
+                medias_rsp = requests.get(url=medias_url, headers=global_headers)
+                medias_HTML = etree.HTML(medias_rsp.text)
+                medias_text = medias_HTML.xpath("//script[1]/text()")[0]
+                pattern = re.compile(r"mArg = ({[\s\S]*)}catch")
+                datas = re.findall(pattern, medias_text)[0]
+                datas = json.loads(datas.strip()[:-1])
+                for media_item in datas["attachments"]:
+                    media_type = media_item.get("type")
+                    jobid = media_item.get("jobid")
+                    if media_type == "video":
+                        objectId = media_item.get("objectId")
+                        otherInfo = media_item.get("otherInfo")
+                        name = media_item.get('property').get('name')
+                        return VideoThread(misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId), name=name)
+                    else:
+                        continue
+            except Exception as e:
+                print("获取课程视频观看总时长错误",e)
+                return 0
+        return 0
 
 
 class video_nomal_thread(threading.Thread):
