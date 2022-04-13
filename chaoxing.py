@@ -310,7 +310,12 @@ def misson_video(objectId, otherInfo, jobid, name, reportUrl, clazzId):
     }
     misson_headers.update(global_headers)
     status_rsp = requests.get(url=status_url, headers=misson_headers)
-    status_json = json.loads(status_rsp.text)
+    status_json = None
+    try:
+        status_json = json.loads(status_rsp.text)
+    except Exception as e:
+        print("该视频任务点信息读取错误",status_rsp.status_code,status_url)
+        return
     duration = status_json.get('duration')
     dtoken = status_json.get('dtoken')
     print(objectId, otherInfo, jobid, uid, name, duration, reportUrl)
