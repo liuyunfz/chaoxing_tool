@@ -97,25 +97,25 @@ def step_2():
                 course_dict[i] = [class_item_name, "https://mooc1-2.chaoxing.com{}".format(class_item.xpath("./div[1]/a[1]/@href")[0])]
             except:
                 pass
-    # TODO: new API
-    # class_url = "http://mooc2-ans.chaoxing.com/visit/courses/list?v=1649759111895&rss=1&start=0&size=500&catalogId=0&searchname="
-    # class_rsp = requests.get(url=class_url, headers=global_headers)
-    # if class_rsp.status_code == 200:
-    #     class_HTML = etree.HTML(class_rsp.text)
-    #     os.system("cls")
-    #     print("处理成功，您当前已开启的课程如下：\n")
-    #     i = 0
-    #     global course_dict
-    #     course_dict = {}
-    #     for class_item in class_HTML.xpath('/html/body/div[3]/ul[1]/li'):
-    #         try:
-    #             class_item_name = class_item.xpath("./div[2]/h3/a/span/@title")[0]
-    #             # 等待开课的课程由于尚未对应链接，所以缺少a标签。
-    #             i += 1
-    #             print(class_item_name)
-    #             course_dict[i] = [class_item_name, class_item.xpath("./div[2]/h3/a/@href")[0]]
-    #         except:
-    #             pass
+        # TODO: new API
+        # class_url = "http://mooc2-ans.chaoxing.com/visit/courses/list?v=1649759111895&rss=1&start=0&size=500&catalogId=0&searchname="
+        # class_rsp = requests.get(url=class_url, headers=global_headers)
+        # if class_rsp.status_code == 200:
+        #     class_HTML = etree.HTML(class_rsp.text)
+        #     os.system("cls")
+        #     print("处理成功，您当前已开启的课程如下：\n")
+        #     i = 0
+        #     global course_dict
+        #     course_dict = {}
+        #     for class_item in class_HTML.xpath('/html/body/div[3]/ul[1]/li'):
+        #         try:
+        #             class_item_name = class_item.xpath("./div[2]/h3/a/span/@title")[0]
+        #             # 等待开课的课程由于尚未对应链接，所以缺少a标签。
+        #             i += 1
+        #             print(class_item_name)
+        #             course_dict[i] = [class_item_name, class_item.xpath("./div[2]/h3/a/@href")[0]]
+        #         except:
+        #             pass
         print("———————————————————————————————————")
     else:
         print("课程处理失败，请联系作者")
@@ -299,14 +299,19 @@ def read_cardcount(courseId: str, clazzid: str, chapterId: str, cpi: str):
     data = "courseId={0}&clazzid={1}&chapterId={2}&cpi={3}&verificationcode=".format(courseId, clazzid, chapterId, cpi)
     rsp = requests.post(url=url, headers=headers, data=data)
     rsp_HTML = etree.HTML(rsp.text)
-    return rsp_HTML.xpath("//input[@id='cardcount']/@value")[0]
+    card_count = 0
+    try:
+        card_count = rsp_HTML.xpath("//input[@id='cardcount']/@value")[0]
+    except Exception as e:
+        print("card count error", rsp.status_code, rsp.text, e)
+    return card_count
 
 
 # 处理video任务,校验为enc
 def misson_video(objectId, otherInfo, jobid, name, reportUrl, clazzId):
     status_url = "https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(objectId)
-    misson_headers={
-        "Referer":"https://mooc1.chaoxing.com/ananas/modules/video/index.html?v=2022-0329-1945"
+    misson_headers = {
+        "Referer": "https://mooc1.chaoxing.com/ananas/modules/video/index.html?v=2022-0329-1945"
     }
     misson_headers.update(global_headers)
     status_rsp = requests.get(url=status_url, headers=misson_headers)
@@ -314,7 +319,7 @@ def misson_video(objectId, otherInfo, jobid, name, reportUrl, clazzId):
     try:
         status_json = json.loads(status_rsp.text)
     except Exception as e:
-        print("该视频任务点信息读取错误",status_rsp.status_code,status_url)
+        print("该视频任务点信息读取错误", status_rsp.status_code, status_url)
         return
     duration = status_json.get('duration')
     dtoken = status_json.get('dtoken')
@@ -424,7 +429,7 @@ def misson_read(jobid, chapterId, courseid, clazzid, jtoken):
 def set_log(course_url: str):
     course_rsp = requests.get(url=url_302(course_url)["new_url"], headers=global_headers)
     course_HTML = etree.HTML(course_rsp.text)
-    #TODO：人脸检测验证
+    # TODO：人脸检测验证
     log_url = course_HTML.xpath("/html/body/script[11]/@src")[0]
     rsp = requests.get(url=log_url, headers=global_headers)
     print(rsp.text)
@@ -456,7 +461,7 @@ def deal_misson(missons: list, class_cpi: str, mode: int):
                     # mode 1 download medias
                     medias_download(datas["attachments"])
             except Exception as e:
-                print(medias_url+" error",e)
+                print(medias_url + " error", e)
                 continue
 
 
@@ -600,11 +605,11 @@ class VideoThread(threading.Thread):
         }
         while True:
             rsp = requests.get(url=self.post_url, headers=headers)
-            if rsp.status_code !=200:
-                print(self.post_url,self.name,"error!")
+            if rsp.status_code != 200:
+                print(self.post_url, self.name, "error!")
                 self.post_url = self.post_url.replace("mooc1-2", "mooc1")
             else:
-                print(self.name,rsp.text)
+                print(self.name, rsp.text)
             time.sleep(60)
 
 
@@ -655,7 +660,7 @@ def get_task_status(url: str):
                     else:
                         continue
             except Exception as e:
-                print("获取课程视频观看总时长错误",e)
+                print("获取课程视频观看总时长错误", e)
                 return 0
         return 0
 
@@ -761,7 +766,7 @@ class Things():
                             'Sec-Fetch-Site': 'same-origin',
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
                         }
-                        rsp = requests.get(url=item.replace("isdrag=0","isdrag=4"), headers=multimedia_headers)
+                        rsp = requests.get(url=item.replace("isdrag=0", "isdrag=4"), headers=multimedia_headers)
                         print(rsp.text)
                 else:
 
@@ -824,7 +829,7 @@ class Things():
                                     'Sec-Fetch-Site': 'same-origin',
                                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
                                 }
-                                rsp = requests.get(url=item.replace("isdrag=0","isdrag=4"), headers=multimedia_headers)
+                                rsp = requests.get(url=item.replace("isdrag=0", "isdrag=4"), headers=multimedia_headers)
                                 print(rsp.text)
                         else:
 
