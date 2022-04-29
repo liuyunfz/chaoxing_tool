@@ -24,7 +24,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.UPLOAD_TOKEN }}
       with:
-        tag_name: v1.7
         release_name: 1.7 Beta Release
         draft: false
         prerelease: true
