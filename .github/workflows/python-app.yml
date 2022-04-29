@@ -6,8 +6,6 @@ name: Compile executable file
 on:
   push:
     branches: [ master ]
-    tags:
-      - 'v*'
 
 jobs:
   build:
@@ -24,7 +22,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.UPLOAD_TOKEN }}
       with:
-        tag_name: v1.7 ${{ github.run_id }}
+        tag_name: v1.7.${{ github.run_id }}
         release_name: 1.7 Beta Release
         draft: false
         prerelease: true
