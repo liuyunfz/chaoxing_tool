@@ -4,6 +4,7 @@ import json
 import re
 import threading
 from queue import Queue
+from turtle import st
 from urllib import parse
 
 import base64
@@ -16,7 +17,6 @@ from lxml import etree
 global video_url_list
 video_url_list = []
 class_list = []
-
 
 # 视频任务enc校验计算
 def encode_enc(clazzid: str, duration: int, objectId: str, otherinfo: str, jobid: str, userid: str, currentTimeSec: str):
@@ -98,6 +98,25 @@ def step_2():
                 course_dict[i] = [class_item_name, "https://mooc1-2.chaoxing.com{}".format(class_item.xpath("./div[1]/a[1]/@href")[0])]
             except:
                 pass
+        # TODO: new API
+        # class_url = "http://mooc2-ans.chaoxing.com/visit/courses/list?v=1649759111895&rss=1&start=0&size=500&catalogId=0&searchname="
+        # class_rsp = requests.get(url=class_url, headers=global_headers)
+        # if class_rsp.status_code == 200:
+        #     class_HTML = etree.HTML(class_rsp.text)
+        #     os.system("cls")
+        #     print("处理成功，您当前已开启的课程如下：\n")
+        #     i = 0
+        #     global course_dict
+        #     course_dict = {}
+        #     for class_item in class_HTML.xpath('/html/body/div[3]/ul[1]/li'):
+        #         try:
+        #             class_item_name = class_item.xpath("./div[2]/h3/a/span/@title")[0]
+        #             # 等待开课的课程由于尚未对应链接，所以缺少a标签。
+        #             i += 1
+        #             print(class_item_name)
+        #             course_dict[i] = [class_item_name, class_item.xpath("./div[2]/h3/a/@href")[0]]
+        #         except:
+        #             pass
         print("———————————————————————————————————")
     else:
         print("课程处理失败，请联系作者")
@@ -281,7 +300,12 @@ def read_cardcount(courseId: str, clazzid: str, chapterId: str, cpi: str):
     data = "courseId={0}&clazzid={1}&chapterId={2}&cpi={3}&verificationcode=".format(courseId, clazzid, chapterId, cpi)
     rsp = requests.post(url=url, headers=headers, data=data)
     rsp_HTML = etree.HTML(rsp.text)
-    return rsp_HTML.xpath("//input[@id='cardcount']/@value")[0]
+    card_count = 0
+    try:
+        card_count = rsp_HTML.xpath("//input[@id='cardcount']/@value")[0]
+    except Exception as e:
+        print("card count error", rsp.status_code, rsp.text, e)
+    return card_count
 
 
 # 处理video任务,校验为enc
@@ -292,7 +316,12 @@ def misson_video(objectId, otherInfo, jobid, name, reportUrl, clazzId):
     }
     misson_headers.update(global_headers)
     status_rsp = requests.get(url=status_url, headers=misson_headers)
-    status_json = json.loads(status_rsp.text)
+    status_json = None
+    try:
+        status_json = json.loads(status_rsp.text)
+    except Exception as e:
+        print("该视频任务点信息读取错误", status_rsp.status_code, status_url)
+        return
     duration = status_json.get('duration')
     dtoken = status_json.get('dtoken')
     print(objectId, otherInfo, jobid, uid, name, duration, reportUrl)
@@ -311,7 +340,7 @@ def misson_video(objectId, otherInfo, jobid, name, reportUrl, clazzId):
     #     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
     # }
 
-    elses = "/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=0&view=pc&enc={7}&rt=0.9&dtype=Video&_t={8}".format(dtoken, clazzId, duration, objectId, otherInfo, jobid, uid, encode_enc(clazzId, duration, objectId, otherInfo, jobid, uid, duration), int(time.time() * 1000))
+    elses = "/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=0&view=pc&enc={7}&rt=1&dtype=Video&_t={8}".format(dtoken, clazzId, duration, objectId, otherInfo, jobid, uid, encode_enc(clazzId, duration, objectId, otherInfo, jobid, uid, duration), int(time.time() * 1000))
     reportUrl_item = reportUrl + str(elses)
     video_url_list.append(reportUrl_item)
     # multimedia_rsp = requests.get(url=reportUrl_item, headers=multimedia_headers)
@@ -576,7 +605,12 @@ class VideoThread(threading.Thread):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36 Edg/90.0.818.51'
         }
         while True:
-            print(self.name, requests.get(url=self.post_url, headers=headers).text)
+            rsp = requests.get(url=self.post_url, headers=headers)
+            if rsp.status_code != 200:
+                print(self.post_url, self.name, "error!")
+                self.post_url = self.post_url.replace("mooc1-2", "mooc1")
+            else:
+                print(self.name, rsp.text)
             time.sleep(60)
 
 
@@ -608,23 +642,28 @@ def get_task_status(url: str):
         # print(chapterId)
         cardcount = int(read_cardcount(courseId, clazzId, chapterId, cpi))
         for i in range(cardcount):
-            medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, cpi, i)
-            medias_rsp = requests.get(url=medias_url, headers=global_headers)
-            medias_HTML = etree.HTML(medias_rsp.text)
-            medias_text = medias_HTML.xpath("//script[1]/text()")[0]
-            pattern = re.compile(r"mArg = ({[\s\S]*)}catch")
-            datas = re.findall(pattern, medias_text)[0]
-            datas = json.loads(datas.strip()[:-1])
-            for media_item in datas["attachments"]:
-                media_type = media_item.get("type")
-                jobid = media_item.get("jobid")
-                if media_type == "video":
-                    objectId = media_item.get("objectId")
-                    otherInfo = media_item.get("otherInfo")
-                    name = media_item.get('property').get('name')
-                    return VideoThread(misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId), name=name)
-                else:
-                    return 0
+            try:
+                medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, cpi, i)
+                medias_rsp = requests.get(url=medias_url, headers=global_headers)
+                medias_HTML = etree.HTML(medias_rsp.text)
+                medias_text = medias_HTML.xpath("//script[1]/text()")[0]
+                pattern = re.compile(r"mArg = ({[\s\S]*)}catch")
+                datas = re.findall(pattern, medias_text)[0]
+                datas = json.loads(datas.strip()[:-1])
+                for media_item in datas["attachments"]:
+                    media_type = media_item.get("type")
+                    jobid = media_item.get("jobid")
+                    if media_type == "video":
+                        objectId = media_item.get("objectId")
+                        otherInfo = media_item.get("otherInfo")
+                        name = media_item.get('property').get('name')
+                        return VideoThread(misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId), name=name)
+                    else:
+                        continue
+            except Exception as e:
+                print("获取课程视频观看总时长错误", e)
+                return 0
+        return 0
 
 
 class video_nomal_thread(threading.Thread):
@@ -684,8 +723,6 @@ class video_nomal_thread(threading.Thread):
         url_tmp = re.sub("playingTime=\\d+", "playingTime=%d" % now_time, self.url)
         url_tmp = re.sub("enc=[0-9a-zA-Z]+", "enc=%s" % enc_tmp, url_tmp)
         return url_tmp
-
-
 # 自定义任务类，处理菜单任务
 class Things():
     def __init__(self, username='nobody'):
@@ -881,13 +918,14 @@ class Things():
         for j in threadPool:
             j.join()
 
+
     # 清屏
     def misson_6(self):
         os.system("cls")
-
     def misson_7(self):
         step_1()
         step_2()
+
 
     # 批量刷选择的课程
     def misson_8(self):
@@ -899,6 +937,7 @@ class Things():
             enter = True
             enter = input("输入你要完成的课程序号(各课程序号换行输入，q回退主菜单 end结束输入)：")
             if enter != "end":
+
                 class_list.append(enter)
             try:
                 if enter == "q":
@@ -940,7 +979,7 @@ class Things():
                 print("error:%s" % e)
         return 0
 
-
+      
 class Menu():
     def __init__(self):
         self.thing = Things()
@@ -969,7 +1008,6 @@ class Menu():
 8.退出当前账号，重新登陆
 9.退出本程序
         """)
-
     def run(self):
         while True:
             self.display_menu()
@@ -983,8 +1021,6 @@ class Menu():
 
     def quit(self):
         sys.exit(0)
-
-
 def before_start() -> None:
     print("欢迎您使用 chaoxing_tool , 本工具是针对超星(学习通)所编写的Python脚本工具")
     print("本工具完全免费且开源，项目地址: https://github.com/liuyunfz/chaoxing_tool")
@@ -1000,7 +1036,6 @@ def before_start() -> None:
     print("7.如果您在使用中有疑问或者遇到了BUG，请前往提交Issue: https://github.com/liuyunfz/chaoxing_tool/issues")
 
     input("\n回车确认后正式使用本软件:")
-
 
 if __name__ == "__main__":
     before_start()
