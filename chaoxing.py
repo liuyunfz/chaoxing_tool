@@ -965,45 +965,39 @@ class main_Window:
 
         # call login
         lgb = tkinter.Button(main, text="登录", command=lambda: main_Window.login(text_log), relief="groove")
-        lgb.grid(row=1, column=0, sticky="w")
+        lgb.place(x=5, y=0)
         text_log = tkinter.StringVar()
         text_log.set("未登录")
         
         quit_log = tkinter.Button(main, text="退出当前账号，重新登陆", command=lambda:main_Window.restart(main), relief="groove")
-        quit_log.grid(row=1, column=0, sticky="e")
-
-        Number_learningtimes = tkinter.Button(main, text="刷取课程学习次数", command=lambda:Things.misson_4(Things, list_classes), relief="groove")
-        Number_learningtimes.grid(row=2, column=0, sticky="e")
-
-        Swipelearning = tkinter.Button(main, text="刷取视频学习时间", command=lambda:Things.misson_5(Things), relief="groove")
-        Swipelearning.grid(row=3, column=0, sticky="e")
+        quit_log.place(x=5, y=35)
 
         log_tip = tkinter.Label(main, bg="#E0FFFF", textvariable=text_log)
-        log_tip.grid(row=2, column=0, sticky="w")        
+        log_tip.place(x=55, y=0)
 
-        list_classes = tkinter.Listbox(main, bg = "#E0FFFF", height = 20, width = 30, selectmode='extended')
-        list_classes.grid(row=5, column=0, sticky="w")
+        list_classes = tkinter.Listbox(main, bg = "#E0FFFF", height = 20, width = 40, selectmode='extended')
+        list_classes.place(x=5, y=70)
         
-        list_chapters = tkinter.Listbox(main, bg = "#E0FFFF", height = 20, width = 30)
-        list_chapters.grid(row=5, column=60, sticky="w")
-        
-        get_chapters_bottom = tkinter.Button(main, text="获取章节", command=lambda:print_chapters(course_dict[int(list_classes.curselection()[0] + 1)][1], list_chapters), relief="groove")
-        get_chapters_bottom.grid(row=5, column=1, sticky="w")
+        list_chapters = tkinter.Listbox(main, bg = "#E0FFFF", height = 20, width = 40)
+        list_chapters.place(x=405, y =70)
 
         get_class_bottom = tkinter.Button(main, text="获取课程", command=lambda:step_2(list_classes) , relief="groove")
-        get_class_bottom.grid(row=4, column=0, sticky="w")
+        get_class_bottom.place(x=5, y=565)
 
-        complear_all_bottom = tkinter.Button(main, text="一键完成所有课程中的任务节点(不包含测验)", command=lambda:Things.misson_1(Things), relief="groove")
-        complear_all_bottom.grid(row=2, column=60)
+        get_chapters_bottom = tkinter.Button(main, text="获取章节", command=lambda:print_chapters(course_dict[int(list_classes.curselection()[0] + 1)][1], list_chapters), relief="groove")
+        get_chapters_bottom.place(x=75,y=565)
+        
+        complear_fewclass_bottom = tkinter.Button(main, text="完成课程中的任务节点（不包含测验）", command=lambda:Things.misson_6(Things, list_classes), relief="groove")
+        complear_fewclass_bottom.place(x=145, y=565)
 
-        complear_anclass_bottom = tkinter.Button(main, text="完成单个课程中的所有任务节点(不包含测验)", command=lambda:Things.misson_2(Things, list_classes), relief="groove")
-        complear_anclass_bottom.grid(row=3, column=60)
+        download = tkinter.Button(main, text="下载课程资源", command=lambda:Things.misson_3(Things, list_chapters), relief="groove")
+        download.place(x=405, y=565)
 
-        complear_fewclass_bottom = tkinter.Button(main, text="完成部分课程中的所有任务节点（不包含测验）", command=lambda:Things.misson_6(Things, list_classes), relief="groove")
-        complear_fewclass_bottom.grid(row=4, column=60)
+        Number_learningtimes = tkinter.Button(main, text="刷取课程学习次数", command=lambda:Things.misson_4(Things, list_classes), relief="groove")
+        Number_learningtimes.place(x=505, y=565)
 
-        download = tkinter.Button(main, text="下载课程资源(mp4,pdf,pptx,png等)", command=lambda:Things.misson_3(Things, list_chapters), relief="groove")
-        download.grid(row=1, column=60)
+        Swipelearning = tkinter.Button(main, text="刷取视频学习时间", command=lambda:Things.misson_5(Things), relief="groove")
+        Swipelearning.place(x=639, y=565)
 
         return main
 
