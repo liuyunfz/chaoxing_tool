@@ -1,0 +1,5 @@
+.github
+__pycache__
+build
+dist
+chaoxing.spec
