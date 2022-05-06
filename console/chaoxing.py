@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 # _*_ coding:utf-8 _*_
-from glob import glob
 import json
 import re
 import threading
 from queue import Queue
-from turtle import speed, st
+from turtle import st
 from urllib import parse
-
-import tkinter
-import tkinter.ttk
 
 import base64
 import os
@@ -21,8 +17,6 @@ from lxml import etree
 global video_url_list
 video_url_list = []
 class_list = []
-global_headers = {}
-course_dict = {}
 
 # 视频任务enc校验计算
 def encode_enc(clazzid: str, duration: int, objectId: str, otherinfo: str, jobid: str, userid: str, currentTimeSec: str):
@@ -58,16 +52,21 @@ def sign_in(uname: str, password: str):
 
 
 # 任务1：用户登录，并合并cookie
-def step_1(uname, password, lgw, text_log, list_classes):      
-    sign_in_rsp = sign_in(uname, password)
-    sign_in_json = sign_in_rsp.json()
-    if sign_in_json['status'] == False:
-        tkinter.messagebox.showerror('错误', '登陆失败！')
-        sign_sus = False
-        return False
-    else:
-        sign_sus = True
-        tkinter.messagebox.showinfo('提示', '登录成功！') 
+def step_1():
+    sign_sus = False
+    while sign_sus == False:
+        os.system("cls")
+        uname = input("请输入您的手机号:")
+        import getpass
+        password = getpass.getpass("请输入您的密码(已自动隐藏,请放心输入):")
+        sign_in_rsp = sign_in(uname, password)
+        sign_in_json = sign_in_rsp.json()
+        if sign_in_json['status'] == False:
+            print(sign_in_json.get('msg2'), "\n\n请按回车重新键入账号数据")
+            input()
+        else:
+            sign_sus = True
+            print("登陆成功，正在处理您的数据...")
     global cookieStr, uid, global_headers
     uid = sign_in_rsp.cookies['_uid']
     cookieStr = ''
@@ -77,19 +76,16 @@ def step_1(uname, password, lgw, text_log, list_classes):
         'Cookie': cookieStr,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
     }
-    text_log.set("已登录")
-    lgw.destroy()
-    step_2(list_classes)
-    return True
 
 
 # 任务2：课程读取，并输出课程信息
-def step_2(list_classes):
+def step_2():
     class_url = "http://mooc1-2.chaoxing.com/visit/courses"
     class_rsp = requests.get(url=class_url, headers=global_headers)
     if class_rsp.status_code == 200:
         class_HTML = etree.HTML(class_rsp.text)
-        tkinter.messagebox.showinfo('提示', '处理成功！') 
+        os.system("cls")
+        print("处理成功，您当前已开启的课程如下：\n")
         i = 0
         global course_dict
         course_dict = {}
@@ -98,8 +94,8 @@ def step_2(list_classes):
                 class_item_name = class_item.xpath("./div[2]/h3/a/@title")[0]
                 # 等待开课的课程由于尚未对应链接，所以缺少a标签。
                 i += 1
+                print(class_item_name)
                 course_dict[i] = [class_item_name, "https://mooc1-2.chaoxing.com{}".format(class_item.xpath("./div[1]/a[1]/@href")[0])]
-                list_classes.insert(tkinter.END, class_item_name)
             except:
                 pass
         # TODO: new API
@@ -121,10 +117,10 @@ def step_2(list_classes):
         #             course_dict[i] = [class_item_name, class_item.xpath("./div[2]/h3/a/@href")[0]]
         #         except:
         #             pass
+        print("———————————————————————————————————")
     else:
-        tkinter.messagebox.showerror('课程处理失败')
+        print("课程处理失败，请联系作者")
     # print(course_dict)
-    return course_dict
 
 
 # 获取url重定向后的新地址与cpi
@@ -213,7 +209,7 @@ def createThread(threadCount, urlQueue, cpi):
 
 
 # 选取有任务点的课程,并处理
-def deal_course_select(url_class, main, progress):
+def deal_course_select(url_class):
     new_url_dict = url_302(url_class)
     new_url = new_url_dict["new_url"]
     course_HTML = course_get(new_url)
@@ -222,9 +218,12 @@ def deal_course_select(url_class, main, progress):
     try:
         course_unit_list = course_HTML.xpath("//div[@class='units']")
         for course_unit in course_unit_list:
+            print(__list_get(course_unit.xpath("./h2/a/@title")))
             recursive_course(course_unit.xpath("./div"), chapter_mission, 1)
     except Exception as e:
-        tkinter.messagebox.showerror('错误', e)
+        print("deal_course_select error %s" % e)
+
+    print("课程读取完成，共有%d个章节可一键完成" % len(chapter_mission))
     # if len(chapter_mission) > 20:
     #     print("章节数大于20，已为您自动启动多线程")
     #     threadQueue = createThread(6, createQueue(chapter_mission), new_url_dict["cpi"])
@@ -233,7 +232,7 @@ def deal_course_select(url_class, main, progress):
     #     for thread in threadQueue:
     #         thread.join()  # 线程池销毁
     # else:
-    deal_misson(chapter_mission, new_url_dict["cpi"], 0, main, progress)
+    deal_misson(chapter_mission, new_url_dict["cpi"], 0)
 
 
 # 递归读取所有课程信息，返回dict
@@ -247,12 +246,8 @@ def recursive_course_dict(course_unit_list, chapter_dict):
             recursive_course_dict(chapter_item_list, chapter_dict)
 
 
-chapter_list = []
-new_url_dict = None
-
-
-def print_chapters(url_class, list_chapters) :
-    global new_url_dict
+# 获取所有的课程信息，并储存url
+def deal_course_all(url_class):
     new_url_dict = url_302(url_class)
     new_url = new_url_dict["new_url"]
     course_HTML = course_get(new_url)
@@ -262,30 +257,24 @@ def print_chapters(url_class, list_chapters) :
     try:
         for course_unit in course_unit_list:
             recursive_course_dict(course_unit.xpath("./div"), chapter_dict)
-        global chapter_list
         chapter_list = []
-        list_chapters.delete(0, tkinter.END)
         for chapter_item in chapter_dict:
             i = i + 1
             try:
-                list_chapters.insert(tkinter.END, chapter_item)
+                print("%d" % i, chapter_item)
                 chapter_list.append(chapter_dict[chapter_item])
             except Exception as e:
                 print("chapter处理错误", e)
     except Exception as e:
         print(e)
-    return new_url, chapter_list
-
-
-# 获取所有的课程信息，并储存url
-def deal_course_all(enter, main, progress):
     while True:
+        enter = input("请输入资源所在章节的序号：")
         try:
             url_chapter = chapter_list[int(enter) - 1]
-            deal_misson([url_chapter], new_url_dict["cpi"], 1, main, progress)
+            deal_misson([url_chapter], new_url_dict["cpi"], 1)
             break
         except Exception as e:
-            print("'%s'不是可识别的输入，请重新输入" % e)
+            print("'%s'不是可识别的输入，请重新输入" % enter)
 
 
 # 读取章节页数
@@ -448,7 +437,7 @@ def set_log(course_url: str):
 
 
 # 处理任务
-def deal_misson(missons: list, class_cpi: str, mode: int, main, progress):
+def deal_misson(missons: list, class_cpi: str, mode: int):
     for chapter_mission_item in missons:
         result = parse.urlparse(chapter_mission_item)
         chapter_data = parse.parse_qs(result.query)
@@ -458,6 +447,7 @@ def deal_misson(missons: list, class_cpi: str, mode: int, main, progress):
         cardcount = int(read_cardcount(courseId, clazzId, chapterId, class_cpi))
         for num in range(cardcount):
             try:
+                print("num:", num)
                 medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, class_cpi, num)
                 medias_rsp = requests.get(url=medias_url, headers=global_headers)
                 medias_HTML = etree.HTML(medias_rsp.text)
@@ -471,13 +461,10 @@ def deal_misson(missons: list, class_cpi: str, mode: int, main, progress):
                 else:
                     # mode 1 download medias
                     medias_download(datas["attachments"])
-                progress['value'] += 3
-                main.update()
             except Exception as e:
-                tkinter.messagebox.showerror('错误',e)
+                print(medias_url + " error", e)
                 continue
-    progress['value'] = 100
-    tkinter.messagebox.showinfo('提示', '课程读取完成！') 
+
 
 # 判断媒体类型并处理
 def medias_deal(data, clazzId, chapterId, courseId, chapterUrl):
@@ -542,8 +529,8 @@ def medias_download(medias):
         downloads_dict[i] = [filename, download]
         print(i, ".       ", filename)
     if downloads_dict == {}:
-        tkinter.messagebox.showinfo('提示', '所在章节无可下载的资源')
-        return
+        print("所在章节无可下载的资源")
+        return False
     enter = input("请输入你要下载资源的序号，以逗号分隔：")
     enter_list = enter.split(",")
     download_headers = global_headers
@@ -591,12 +578,10 @@ def __list_get(list: list):
 
 
 class VideoThread(threading.Thread):
-    def __init__(self, post_url, name, main, progress):
+    def __init__(self, post_url, name):
         super(VideoThread, self).__init__()
         self.post_url = post_url
         self.name = name
-        self.main = main
-        self.progress = progress
 
     def run(self) -> None:
         rsp = requests.get(url=self.post_url, headers=global_headers)
@@ -620,8 +605,6 @@ class VideoThread(threading.Thread):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36 Edg/90.0.818.51'
         }
         while True:
-            self.progress['value'] += 5
-            self.main.update()
             rsp = requests.get(url=self.post_url, headers=headers)
             if rsp.status_code != 200:
                 print(self.post_url, self.name, "error!")
@@ -632,7 +615,7 @@ class VideoThread(threading.Thread):
 
 
 # 获取课程视频观看总时长
-def get_task_status(url: str, main, progress):
+def get_task_status(url: str):
     url = url_302(url)["new_url"]
     result = parse.urlparse(url)
     chapter_data = parse.parse_qs(result.query)
@@ -674,14 +657,12 @@ def get_task_status(url: str, main, progress):
                         objectId = media_item.get("objectId")
                         otherInfo = media_item.get("otherInfo")
                         name = media_item.get('property').get('name')
-                        return VideoThread(misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId), 
-                        name=name, main=main, progress=progress)
+                        return VideoThread(misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId), name=name)
                     else:
                         continue
             except Exception as e:
-                tkinter.messagebox.showerror('错误', e)
+                print("获取课程视频观看总时长错误", e)
                 return 0
-        tkinter.messagebox.showinfo('提示', '读取成功') 
         return 0
 
 
@@ -719,7 +700,6 @@ class video_nomal_thread(threading.Thread):
         self.jobid = self.__list_get(re.findall("(?<=jobid=)\\d+", self.url))
         self.uid = self.__list_get(re.findall("(?<=userid=)\\d+", self.url))
 
-
     def run(self) -> None:
         rsp = requests.get(url=self.url_replace(0), headers=global_headers)
         print(rsp.status_code)
@@ -743,98 +723,239 @@ class video_nomal_thread(threading.Thread):
         url_tmp = re.sub("playingTime=\\d+", "playingTime=%d" % now_time, self.url)
         url_tmp = re.sub("enc=[0-9a-zA-Z]+", "enc=%s" % enc_tmp, url_tmp)
         return url_tmp
-
-
 # 自定义任务类，处理菜单任务
 class Things():
     def __init__(self, username='nobody'):
         self.username = username
 
-    # 下载课程
-    def misson_1(self, list_classes, main, progress):
-        while True:
-            try: 
-                enter = list_classes.curselection()[0] + 1
-                enter = int(enter)
-                deal_course_all(enter, main, progress)
-                tkinter.messagebox.showinfo('提示','课程处理完成！') 
-                break
-            except Exception as e:
-                tkinter.messagebox.showerror('错误', e)
-                return -1
+    def misson_1(self):
+        os.system("cls")
+        for i in range(len(course_dict)):
+            print("%d.%s" % (i + 1, course_dict[i + 1][0]))
+        enter = input("\n确认要一键完成以上所有课程吗？(回车确认，任意其他输入则取消并返回主菜单)")
+        if enter == "":
+            print("开始处理课程中....\n")
+            global video_url_list
+            video_url_list = []
+            for course_item in course_dict:
+                print("开始处理'%s'..." % course_dict[course_item][0])
+                deal_course_select(course_dict[course_item][1])
+                print("'%s' 课程处理完成\n" % course_dict[course_item][0])
+            if len(video_url_list) == 0:
+                input("\n任务已完成，回车返回主菜单")
+            else:
+                print("除视频节点外任务已完成，接下来将对剩下的%d个视频节点进行处理" % len(video_url_list))
+                speed = input("请选择视频节点的完成方式 1.立即完成(1秒即可完成视频任务点) 2.常规速度完成(完成时间与视频时间等长) :")
+                while speed != "1" and speed != "2":
+                    print("请输入正常的序号")
+                    speed = input("请选择视频节点的完成方式 1.立即完成(1秒即可完成视频任务点) 2.常规速度完成(完成时间与视频时间等长) :")
+                if speed == "1":
+                    for item in video_url_list:
+                        multimedia_headers = {
+                            'Accept': '*/*',
+                            'Accept-Encoding': 'gzip, deflate, br',
+                            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                            'Connection': 'keep-alive',
+                            'Content-Type': 'application/json',
+                            'Cookie': cookieStr,
+                            'Host': 'mooc1-1.chaoxing.com',
+                            'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
+                            'Sec-Fetch-Dest': 'empty',
+                            'Sec-Fetch-Mode': 'cors',
+                            'Sec-Fetch-Site': 'same-origin',
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+                        }
+                        rsp = requests.get(url=item.replace("isdrag=0", "isdrag=4"), headers=multimedia_headers)
+                        print(rsp.text)
+                else:
 
+                    video_nomal_thread_pool = []
+                    for video_item in video_url_list:
+                        video_nomal_thread_pool.append(video_nomal_thread(video_item))
+                    for item in video_nomal_thread_pool:
+                        item.start()
+                        time.sleep(1)
+                    print("\n视频线程已全部启动\n")
+                    for item in video_nomal_thread_pool:
+                        item.join()
+                print("任务执行完成")
+
+            print("所有课程处理完成，请手动登陆网站进行查看，如有疑问请联系作者。")
+        else:
+            pass
+
+    def misson_2(self):
+        os.system("cls")
+        print("您所加入的课程如下：")
+        for i in range(len(course_dict)):
+            print("%d.%s" % (i + 1, course_dict[i + 1][0]))
+        while True:
+            enter = input("输入你要完成的课程序号(输入q回退主菜单)：")
+            try:
+                if enter == "q":
+                    break
+                else:
+                    try:
+                        input("请确认您要完成'%s'" % (course_dict[int(enter)][0]))
+                    except:
+                        print("'%s'并不是可识别的序号，请您重新检查后输入" % enter)
+                        continue
+                    global video_url_list
+                    video_url_list = []
+                    deal_course_select(course_dict[int(enter)][1])
+                    if len(video_url_list) == 0:
+
+                        input("\n任务已完成，回车返回主菜单")
+                    else:
+                        print("除视频节点外任务已完成，接下来将对剩下的%d个视频节点进行处理" % len(video_url_list))
+                        speed = input("请选择视频节点的完成方式 1.立即完成(1秒即可完成视频任务点) 2.常规速度完成(完成时间与视频时间等长) :")
+                        while speed != "1" and speed != "2":
+                            print("请输入正常的序号")
+                            speed = input("请选择视频节点的完成方式 1.立即完成(1秒即可完成视频任务点) 2.常规速度完成(完成时间与视频时间等长) :")
+                        if speed == "1":
+                            for item in video_url_list:
+                                multimedia_headers = {
+                                    'Accept': '*/*',
+                                    'Accept-Encoding': 'gzip, deflate, br',
+                                    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                                    'Connection': 'keep-alive',
+                                    'Content-Type': 'application/json',
+                                    'Cookie': cookieStr,
+                                    'Host': 'mooc1-1.chaoxing.com',
+                                    'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
+                                    'Sec-Fetch-Dest': 'empty',
+                                    'Sec-Fetch-Mode': 'cors',
+                                    'Sec-Fetch-Site': 'same-origin',
+                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+                                }
+                                rsp = requests.get(url=item.replace("isdrag=0", "isdrag=4"), headers=multimedia_headers)
+                                print(rsp.text)
+                        else:
+                            video_nomal_thread_pool = []
+                            for video_item in video_url_list:
+                                video_nomal_thread_pool.append(video_nomal_thread(video_item))
+                            for item in video_nomal_thread_pool:
+                                item.start()
+                                time.sleep(1)
+                            print("\n视频线程已全部启动\n")
+                            for item in video_nomal_thread_pool:
+                                item.join()
+                        print("任务执行完成")
+
+                    break
+            except Exception as e:
+                print("error:%s" % e)
+
+    # 下载课程
+    def misson_3(self):
+        os.system("cls")
+        print("您所加入的课程如下：")
+        for i in range(len(course_dict)):
+            print("%d.%s" % (i + 1, course_dict[i + 1][0]))
+        while True:
+            enter = input("请输入你要下载资源的课程序号(输入q回退主菜单)：")
+            try:
+                if enter == "q":
+                    break
+                else:
+                    try:
+                        deal_course_all(course_dict[int(enter)][1])
+                    except:
+                        print("'%s'并不是可识别的序号，请您重新检查后输入" % enter)
+                        continue
+                    input("\n任务已完成，回车返回主菜单")
+                    break
+            except Exception as e:
+                print("error:%s" % e)
 
     # 刷学习次数
-    def misson_2(self, list_classes, main, progress):
-        progress['value'] = 0
+    def misson_4(self):
+        os.system("cls")
+        print("您所加入的课程如下：")
+        for i in range(len(course_dict)):
+            print("%d.%s" % (i + 1, course_dict[i + 1][0]))
         while True:
-            enter = list_classes.curselection()[0] + 1
+            enter = input("输入你要刷取学习次数的课程序号(输入q回退主菜单)：")
             try:
-                count = tkinter.simpledialog.askstring(title = 'ChaoXing Tool',prompt='请输入您要刷取的学习次数',initialvalue = '100')
-                count = int(count)
-                try:
-                    try:
-                        delay = tkinter.simpledialog.askstring(title = 'ChaoXing Tool'
-                            ,prompt='未防止频次过快的次数刷取造成理论与实际误差较大，需要您手动指定每次次数刷取的间隔 请输入间隔时间(单位秒)：',initialvalue = '1')
-                        delay = int(delay)
-                    except:
-                        tkinter.messagebox.showerror('错误 将使用默认时间', e)
-                        delay = 1
-                    for num in range(count):
-                        set_log(course_dict[int(enter)][1])
-                        time.sleep(delay)
-                        progress['value'] += 100/count
-                        main.update()
-                    progress['value'] = 100
-                    tkinter.messagebox.showinfo('提示','课程处理完成！') 
+                if enter == "q":
                     break
-                except Exception as e:
-                    tkinter.messagebox.showerror('错误', e)
-                    return -1
+                else:
+                    try:
+                        count = int(input("请输入您要刷取'%s' 的学习次数：" % (course_dict[int(enter)][0])))
+                    except:
+                        print("错误输入\n")
+                        continue
+                    try:
+                        try:
+                            print("未防止频次过快的次数刷取造成理论与实际误差较大，需要您手动指定每次次数刷取的间隔")
+                            delay = input("请输入间隔时间(单位秒)：")
+                            delay = int(delay)
+                        except:
+                            print("错误输入,已使用默认延时:1s\n")
+                            delay = 1
+                        for num in range(count):
+                            set_log(course_dict[int(enter)][1])
+                            time.sleep(delay)
+                        input("\n任务已完成，回车返回主菜单")
+                        break
+                    except Exception as e:
+                        print(e)
             except Exception as e:
-                tkinter.messagebox.showerror('错误', e)
-                return -1
+                print("error:%s" % e)
 
-
-    # 刷取学习时间
-    def misson_3(self, main, progress, list_classes):
-        tkinter.messagebox.showinfo('提示','时间可能较长(窗口可能无响应)，期间请不要关闭程序!')
+    def misson_5(self):
+        os.system("cls")
         threadPool = []
-        try:
-            enter = list_classes.curselection()[0]
-            isThread = get_task_status(course_dict[enter + 1][1], main, progress)
+        for i in range(len(course_dict)):
+            print("正在读取 %s :" % (course_dict[i + 1][0]))
+            isThread = get_task_status(course_dict[i + 1][1])
             if isThread:
                 threadPool.append(isThread)
-            for i in threadPool:
-                i.start()
-                time.sleep(10)
-            for j in threadPool:
-                j.join()
-            progress['value'] = 100
-            tkinter.messagebox.showinfo('提示','课程处理完成！')
-        except Exception as e:
-                tkinter.messagebox.showerror('错误',e)
+
+        for i in threadPool:
+            i.start()
+            time.sleep(10)
+        for j in threadPool:
+            j.join()
 
 
-    # 完成课程的任务点
-    def misson_4(self, list_classes, main, progress):
-        progress['value'] = 0
+    # 清屏
+    def misson_6(self):
+        os.system("cls")
+    def misson_7(self):
+        step_1()
+        step_2()
+
+
+    # 批量刷选择的课程
+    def misson_8(self):
+        os.system("cls")
+        print("您所加入的课程如下：")
+        for i in range(len(course_dict)):
+            print("%d.%s" % (i + 1, course_dict[i + 1][0]))
         while True:
-            enter = list_classes.curselection()
+            enter = True
+            enter = input("输入你要完成的课程序号(各课程序号换行输入，q回退主菜单 end结束输入)：")
+            if enter != "end":
+
+                class_list.append(enter)
             try:
-                global video_url_list
-                video_url_list = []
-                for i in enter:
-                    deal_course_select(course_dict[int(i+1)][1], main, progress)
-                if len(video_url_list) == 0:
-                    progress['value'] = 100
-                    main.update()
-                    tkinter.messagebox.showinfo('提示', '课程处理完成！') 
-                else:
-                    progress['value'] = 0
-                    main.update()
-                    speed = tkinter.messagebox.askquestion(title = 'Chaoxing Tool',message='立即完成(1秒即可完成视频任务点)？是--立刻 否--常规速度')
-                    if speed:
+                if enter == "q":
+                    break
+                elif enter == "end":
+                    try:
+                        name_couse = ""
+                        j = 0
+                        for j in range(len(class_list)):
+                            name_couse = name_couse + "\n" + str(course_dict[int(class_list[j])][0])
+                        input("请确认您要完成\n——————————————————" + name_couse + "\n——————————————————\n这些课程")
+                    except:
+                        print("'%s'并不是可识别的序号，请您重新检查后输入" % enter)
+                        continue
+                    global video_url_list
+                    video_url_list = []
+                    for i in class_list:
+                        deal_course_select(course_dict[int(i)][1])
                         for item in video_url_list:
                             multimedia_headers = {
                                 'Accept': '*/*',
@@ -852,170 +973,72 @@ class Things():
                             }
                             rsp = requests.get(url=item.replace("isdrag=0", "isdrag=4"), headers=multimedia_headers)
                             print(rsp.text)
-                            progress['value'] += (100/len(video_url_list))
-                            main.update()
-                    else:
-                        video_nomal_thread_pool = []
-                        for video_item in video_url_list:
-                            video_nomal_thread_pool.append(video_nomal_thread(video_item))
-                        for item in video_nomal_thread_pool:
-                            item.start()
-                            time.sleep(1)
-                            progress['value'] += 1
-                        tkinter.messagebox.showinfo('提示','视频线程已全部启动') 
-                        for item in video_nomal_thread_pool:
-                            item.join()
-
-                    # 完成
-                    progress['value'] = 100
-                    main.update()
-                    tkinter.messagebox.showinfo('提示','课程处理完成！') 
-                break
+                    print("\n所选课程已全部完成，请手动查看校验，如有问题请提交issue")
+                    break
             except Exception as e:
-                tkinter.messagebox.showerror('错误', e)
-                return -1
+                print("error:%s" % e)
+        return 0
 
-
-# main window class
-class main_Window:
+      
+class Menu():
     def __init__(self):
-        self.bit = True
+        self.thing = Things()
+        self.choices = {
+            "1": self.thing.misson_1,
+            "2": self.thing.misson_8,
+            "3": self.thing.misson_2,
+            "4": self.thing.misson_3,
+            "5": self.thing.misson_4,
+            "6": self.thing.misson_5,
+            "7": self.thing.misson_6,
+            "8": self.thing.misson_7,
+            "9": self.quit,
+        }
 
-    bit = False
+    def display_menu(self):
+        print("""
+菜单：
+1.一键完成所有课程中的任务节点(不包含测验)
+2.完成部分课程中的所有任务节点（不包含测验）
+3.完成单个课程中的所有任务节点(不包含测验)
+4.下载课程资源(mp4,pdf,pptx,png等)
+5.刷取课程学习次数
+6.刷取视频学习时间
+7.清除日志
+8.退出当前账号，重新登陆
+9.退出本程序
+        """)
+    def run(self):
+        while True:
+            self.display_menu()
+            choice = input("\n请输入您要进行的操作：")
+            choice = str(choice).strip()
+            action = self.choices.get(choice)
+            if action:
+                action()
+            else:
+                print("{0}不是正确的序号，请检查后重新输入".format(choice))
 
-    # before_start tip
-    def before_start():
-        bw = tkinter.Tk()
-        bw.geometry('850x500')
-        bw.title("ChaoXing Tool")
-        bw.iconphoto(True, tkinter.PhotoImage(file='./resource/icon.png'))
+    def quit(self):
+        sys.exit(0)
+def before_start() -> None:
+    print("欢迎您使用 chaoxing_tool , 本工具是针对超星(学习通)所编写的Python脚本工具")
+    print("本工具完全免费且开源，项目地址: https://github.com/liuyunfz/chaoxing_tool")
+    print("使用前请确认您使用的是最新版，防止因为超星系统更新导致的功能失效")
 
-        txt = "欢迎您使用 chaoxing_tool , 本工具是针对超星(学习通)所编写的Python脚本工具\n" +  \
-        "本工具完全免费且开源，项目地址: https://github.com/liuyunfz/chaoxing_tool\n" + \
-        "使用前请确认您使用的是最新版，防止因为超星系统更新导致的功能失效\n"+ \
-        "\n且确认以下须知与功能介绍\n" + \
-        "1.本项目支持一键完成的任务点不包括考试与测试\n" + \
-        "2.输入密码时会被自动隐藏，防止您的密码被偷窥\n" + \
-        "3.项目不能完全保证不被系统识别异常，请理性使用\n" + \
-        "4.所有功能均采用发送GET/POST请求包完成，效率更高且占用资源低\n" + \
-        "5.完成课程任务点中的视频任务点会在最后统一处理，由用户决定完成方式\n" + \
-        "6.其中快速完成可能会导致异常，而常规完成则会同步视频时长完成（需要保证软件保持开启状态）用于避免可能由时长\n带来的异常" + \
-        "7.如果您在使用中有疑问或者遇到了BUG，请前往提交Issue: https://github.com/liuyunfz/chaoxing_tool/issues\n"+\
-        "确认后正式使用本软件:\n"
-        tkinter.Message(bw, text=txt, width = 1000, anchor = "w"
-        , justify = "left", bg = "#E0FFFF", fg = "black").pack()
-        tkinter.Button(bw, text="点击确认", command=bw.destroy, relief="groove").pack()
+    print("\n且确认以下须知与功能介绍:")
+    print("1.本项目支持一键完成的任务点不包括考试与测试")
+    print("2.输入密码时会被自动隐藏，防止您的密码被偷窥")
+    print("3.项目不能完全保证不被系统识别异常，请理性使用")
+    print("4.所有功能均采用发送GET/POST请求包完成，效率更高且占用资源低")
+    print("5.完成课程任务点中的视频任务点会在最后统一处理，由用户决定完成方式")
+    print("6.其中快速完成可能会导致异常，而常规完成则会同步视频时长完成（需要保证软件保持开启状态）用于避免可能由时长带来的异常")
+    print("7.如果您在使用中有疑问或者遇到了BUG，请前往提交Issue: https://github.com/liuyunfz/chaoxing_tool/issues")
 
-        bw.attributes("-alpha", 0.85)
-        bw.config(background ="#E0FFFF")
-        bw.mainloop()
-
-
-    # creat main window
-    def mainwin_create():
-        # window
-        main = tkinter.Tk()
-        main.geometry('800x600')
-        main.title("ChaoXing Tool")
-        main.resizable()
-        main.attributes("-alpha", 0.85)
-        main.config(background ="#E0FFFF")
-        main.iconphoto(True, tkinter.PhotoImage(file='./resource/icon.png'))
-
-        # 进度条
-        progress = tkinter.ttk.Progressbar(main, length=200)
-        progress.place(x = 300, y =500)
-        progress['maximum'] = 100
-        progress['value'] = 0
-        
-        # 显示课程
-        list_classes = tkinter.Listbox(main, bg = "#E0FFFF", height = 20, width = 40, selectmode='extended')
-        list_classes.place(x=5, y=70)
-        
-        # 显示章节
-        list_chapters = tkinter.Listbox(main, bg = "#E0FFFF", height = 20, width = 40)
-        list_chapters.place(x=405, y =70)
-        
-        # 登录
-        lgb = tkinter.Button(main, text="登录", command=lambda: main_Window.login(text_log, list_classes), relief="groove")
-        lgb.place(x=5, y=0)
-        text_log = tkinter.StringVar()
-        text_log.set("未登录")
-        
-        # 退出登录
-        quit_log = tkinter.Button(main, text="退出当前账号，重新登陆", command=lambda:main_Window.restart(main), relief="groove")
-        quit_log.place(x=5, y=35)
-
-        # 登录状态提示
-        log_tip = tkinter.Label(main, bg="#E0FFFF", textvariable=text_log)
-        log_tip.place(x=55, y=0)
-
-        # 获取章节
-        get_chapters_bottom = tkinter.Button(main, text="获取章节", command=lambda:
-        print_chapters(course_dict[int(list_classes.curselection()[0] + 1)][1], list_chapters), relief="groove")
-        get_chapters_bottom.place(x=55, y=565)
-        
-        # 完成任务点
-        complear_fewclass_bottom = tkinter.Button(main, text="完成课程中的任务节点（不包含测验）", command=lambda:
-        Things.misson_4(Things, list_classes, main, progress), relief="groove")
-        complear_fewclass_bottom.place(x=125, y=565)
-
-        # 下载
-        download = tkinter.Button(main, text="下载课程资源", command=lambda:
-        Things.misson_1(Things, list_chapters, main, progress), relief="groove")
-        download.place(x=385, y=565)
-
-        # 刷学习次数
-        Number_learningtimes = tkinter.Button(main, text="刷取课程学习次数", command=lambda:
-        Things.misson_2(Things, list_classes, main, progress), relief="groove")
-        Number_learningtimes.place(x=485, y=565)
-
-        # 刷学习时间
-        Swipelearning = tkinter.Button(main, text="刷取视频学习时间", command=lambda:
-        Things.misson_3(Things, main, progress, list_classes), relief="groove")
-        Swipelearning.place(x=619, y=565)
-
-        return main
-
-
-    # login
-    def login(text_log, list_classes):
-        # Login window
-        lgw = tkinter.Toplevel()
-        lgw.geometry("300x300")
-        
-        # input tip
-        account_input = tkinter.Label(lgw,text = "账号：",  bg="#E0FFFF")        
-        password_input = tkinter.Label(lgw,text = "密码：", bg="#E0FFFF")        
-        account_input.grid(row = 0)
-        password_input.grid(row = 1)
-
-        # input
-        account = tkinter.Entry(lgw)
-        password = tkinter.Entry(lgw, show = '*')
-        account.grid(row=0, column=1)
-        password.grid(row=1, column=1)
-
-        # window
-        lgw.attributes("-alpha",0.85)
-        lgw.config(background ="#E0FFFF")
-        lgb = tkinter.Button(lgw, text = "点击登录", command = lambda : step_1(account.get(), 
-        password.get(), lgw, text_log, list_classes), relief="groove")
-        lgb.grid(row=3, column=0, sticky="w", padx=10, pady=5)
-
-
-    def restart(self):
-        self.destroy()
-        main_Window.start(main_Window)
-
-
-    def start(self):
-        self.before_start()
-
-        self = self.mainwin_create()
-
-        self.mainloop()
-
+    input("\n回车确认后正式使用本软件:")
 
 if __name__ == "__main__":
-    main_Window = main_Window.start(main_Window)
+    before_start()
+    step_1()
+    step_2()
+    Menu().run()
