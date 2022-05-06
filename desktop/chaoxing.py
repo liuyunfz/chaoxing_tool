@@ -890,7 +890,7 @@ class main_Window:
         bw = tkinter.Tk()
         bw.geometry('850x500')
         bw.title("ChaoXing Tool")
-        bw.iconphoto(True, tkinter.PhotoImage(file='./desktop/resource/icon.png'))
+        bw.iconbitmap('chaoxing_icon.ico')
 
         txt = "欢迎您使用 chaoxing_tool , 本工具是针对超星(学习通)所编写的Python脚本工具\n" +  \
         "本工具完全免费且开源，项目地址: https://github.com/liuyunfz/chaoxing_tool\n" + \
@@ -922,7 +922,7 @@ class main_Window:
         main.resizable()
         main.attributes("-alpha", 0.85)
         main.config(background ="#E0FFFF")
-        main.iconphoto(True, tkinter.PhotoImage(file='./desktop/resource/icon.png'))
+        main.iconbitmap('chaoxing_icon.ico')
 
         # 进度条
         progress = tkinter.ttk.Progressbar(main, length=200)

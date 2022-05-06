@@ -29,9 +29,9 @@
 **PS**:源代码较Release更新更为频繁，但也较不稳定。release会在添加的几个功能确认稳定后才会正式发布。请根据自己的本地环境与使用需求进行选择下载。 
 
 # 截图
-![img](./desktop/resource/screenshot2.jpg)
+![img](https://user-images.githubusercontent.com/77034643/167157788-ebc85ee5-00af-4d80-bf7a-27002c94a5dc.jpg)    
 
-![img](./desktop//resource/screenshot.jpg)    
+![img](https://user-images.githubusercontent.com/77034643/167157706-0a744234-9574-4f87-ac79-49b11f6b2d39.jpg)      
 # 其他
 - 可能遇到的问题：**详见本仓库的 [Disscussion](https://github.com/liuyunfz/chaoxing_tool/discussions/3)**   
 - 未来：**详见本仓库的 [Project](https://github.com/liuyunfz/chaoxing_tool/projects)**  
