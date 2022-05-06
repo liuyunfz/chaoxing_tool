@@ -7,6 +7,7 @@ import threading
 from queue import Queue
 from turtle import speed, st
 from urllib import parse
+
 import tkinter
 import tkinter.ttk
 
@@ -57,7 +58,7 @@ def sign_in(uname: str, password: str):
 
 
 # 任务1：用户登录，并合并cookie
-def step_1(uname, password, lgw, text_log):        
+def step_1(uname, password, lgw, text_log, list_classes):      
     sign_in_rsp = sign_in(uname, password)
     sign_in_json = sign_in_rsp.json()
     if sign_in_json['status'] == False:
@@ -78,7 +79,9 @@ def step_1(uname, password, lgw, text_log):
     }
     text_log.set("已登录")
     lgw.destroy()
+    step_2(list_classes)
     return True
+
 
 # 任务2：课程读取，并输出课程信息
 def step_2(list_classes):
@@ -122,6 +125,7 @@ def step_2(list_classes):
         tkinter.messagebox.showerror('课程处理失败')
     # print(course_dict)
     return course_dict
+
 
 # 获取url重定向后的新地址与cpi
 def url_302(oldUrl: str):
@@ -246,6 +250,7 @@ def recursive_course_dict(course_unit_list, chapter_dict):
 chapter_list = []
 new_url_dict = None
 
+
 def print_chapters(url_class, list_chapters) :
     global new_url_dict
     new_url_dict = url_302(url_class)
@@ -271,15 +276,16 @@ def print_chapters(url_class, list_chapters) :
         print(e)
     return new_url, chapter_list
 
+
 # 获取所有的课程信息，并储存url
-def deal_course_all(enter):
+def deal_course_all(enter, main, progress):
     while True:
         try:
             url_chapter = chapter_list[int(enter) - 1]
-            deal_misson([url_chapter], new_url_dict["cpi"], 1)
+            deal_misson([url_chapter], new_url_dict["cpi"], 1, main, progress)
             break
         except Exception as e:
-            print("'%s'不是可识别的输入，请重新输入" % enter)
+            print("'%s'不是可识别的输入，请重新输入" % e)
 
 
 # 读取章节页数
@@ -536,8 +542,8 @@ def medias_download(medias):
         downloads_dict[i] = [filename, download]
         print(i, ".       ", filename)
     if downloads_dict == {}:
-        print("所在章节无可下载的资源")
-        return False
+        tkinter.messagebox.showinfo('提示','所在章节无可下载的资源')
+        return
     enter = input("请输入你要下载资源的序号，以逗号分隔：")
     enter_list = enter.split(",")
     download_headers = global_headers
@@ -585,10 +591,12 @@ def __list_get(list: list):
 
 
 class VideoThread(threading.Thread):
-    def __init__(self, post_url, name):
+    def __init__(self, post_url, name, main, progress):
         super(VideoThread, self).__init__()
         self.post_url = post_url
         self.name = name
+        self.main = main
+        self.progress = progress
 
     def run(self) -> None:
         rsp = requests.get(url=self.post_url, headers=global_headers)
@@ -612,6 +620,8 @@ class VideoThread(threading.Thread):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36 Edg/90.0.818.51'
         }
         while True:
+            self.progress['value'] += 5
+            self.main.update()
             rsp = requests.get(url=self.post_url, headers=headers)
             if rsp.status_code != 200:
                 print(self.post_url, self.name, "error!")
@@ -622,7 +632,7 @@ class VideoThread(threading.Thread):
 
 
 # 获取课程视频观看总时长
-def get_task_status(url: str):
+def get_task_status(url: str, main, progress):
     url = url_302(url)["new_url"]
     result = parse.urlparse(url)
     chapter_data = parse.parse_qs(result.query)
@@ -664,12 +674,14 @@ def get_task_status(url: str):
                         objectId = media_item.get("objectId")
                         otherInfo = media_item.get("otherInfo")
                         name = media_item.get('property').get('name')
-                        return VideoThread(misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId), name=name)
+                        return VideoThread(misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=datas["defaults"]["reportUrl"], clazzId=clazzId), 
+                        name=name, main=main, progress=progress)
                     else:
                         continue
             except Exception as e:
-                print("获取课程视频观看总时长错误", e)
+                tkinter.messagebox.showerror('错误',e)
                 return 0
+        tkinter.messagebox.showinfo('提示','读取成功') 
         return 0
 
 
@@ -707,6 +719,7 @@ class video_nomal_thread(threading.Thread):
         self.jobid = self.__list_get(re.findall("(?<=jobid=)\\d+", self.url))
         self.uid = self.__list_get(re.findall("(?<=userid=)\\d+", self.url))
 
+
     def run(self) -> None:
         rsp = requests.get(url=self.url_replace(0), headers=global_headers)
         print(rsp.status_code)
@@ -738,19 +751,22 @@ class Things():
         self.username = username
 
     # 下载课程
-    def misson_1(self, list_classes):
+    def misson_1(self, list_classes, main, progress):
         while True:
             try: 
                 enter = list_classes.curselection()[0] + 1
-                deal_course_all(enter)
+                enter = int(enter)
+                deal_course_all(enter, main, progress)
                 tkinter.messagebox.showinfo('提示','课程处理完成！') 
                 break
             except Exception as e:
                 tkinter.messagebox.showerror('错误',e)
                 return -1
 
+
     # 刷学习次数
-    def misson_2(self, list_classes):
+    def misson_2(self, list_classes, main, progress):
+        progress['value'] = 0
         while True:
             enter = list_classes.curselection()[0] + 1
             try:
@@ -767,6 +783,9 @@ class Things():
                     for num in range(count):
                         set_log(course_dict[int(enter)][1])
                         time.sleep(delay)
+                        progress['value'] += 100/count
+                        main.update()
+                    progress['value'] = 100
                     tkinter.messagebox.showinfo('提示','课程处理完成！') 
                     break
                 except Exception as e:
@@ -776,24 +795,30 @@ class Things():
                 tkinter.messagebox.showerror('错误',e)
                 return -1
 
+
     # 刷取学习时间
-    def misson_3(self):
+    def misson_3(self, main, progress, list_classes):
+        tkinter.messagebox.showinfo('提示','时间可能较长(窗口可能无响应)，期间请不要关闭程序!')
         threadPool = []
-        for i in range(len(course_dict)):
-            tkinter.messagebox.showinfo('提示','正在读取') 
-            isThread = get_task_status(course_dict[i + 1][1])
+        try:
+            enter = list_classes.curselection()[0]
+            isThread = get_task_status(course_dict[enter + 1][1], main, progress)
             if isThread:
                 threadPool.append(isThread)
+            for i in threadPool:
+                i.start()
+                time.sleep(10)
+            for j in threadPool:
+                j.join()
+            progress['value'] = 100
+            tkinter.messagebox.showinfo('提示','课程处理完成！')
+        except Exception as e:
+                tkinter.messagebox.showerror('错误',e)
 
-        for i in threadPool:
-            i.start()
-            time.sleep(10)
-        for j in threadPool:
-            j.join()
-        tkinter.messagebox.showinfo('提示','课程处理完成！') 
 
     # 完成课程的任务点
     def misson_4(self, list_classes, main, progress):
+        progress['value'] = 0
         while True:
             enter = list_classes.curselection()
             try:
@@ -863,7 +888,7 @@ class main_Window:
         bw = tkinter.Tk()
         bw.geometry('850x500')
         bw.title("ChaoXing Tool")
-        bw.iconphoto(True, tkinter.PhotoImage(file='./icon.png'))
+        bw.iconphoto(True, tkinter.PhotoImage(file='./resource/icon.png'))
 
         txt = "欢迎您使用 chaoxing_tool , 本工具是针对超星(学习通)所编写的Python脚本工具\n" +  \
         "本工具完全免费且开源，项目地址: https://github.com/liuyunfz/chaoxing_tool\n" + \
@@ -885,6 +910,7 @@ class main_Window:
         bw.config(background ="#E0FFFF")
         bw.mainloop()
 
+
     # creat main window
     def mainwin_create():
         # window
@@ -894,16 +920,24 @@ class main_Window:
         main.resizable()
         main.attributes("-alpha",0.85)
         main.config(background ="#E0FFFF")
-        main.iconphoto(True, tkinter.PhotoImage(file='./icon.png'))
+        main.iconphoto(True, tkinter.PhotoImage(file='./resource/icon.png'))
 
         # 进度条
         progress = tkinter.ttk.Progressbar(main, length=200)
         progress.place(x = 300, y =500)
         progress['maximum'] = 100
         progress['value'] = 0
-
+        
+        # 显示课程
+        list_classes = tkinter.Listbox(main, bg = "#E0FFFF", height = 20, width = 40, selectmode='extended')
+        list_classes.place(x=5, y=70)
+        
+        # 显示章节
+        list_chapters = tkinter.Listbox(main, bg = "#E0FFFF", height = 20, width = 40)
+        list_chapters.place(x=405, y =70)
+        
         # 登录
-        lgb = tkinter.Button(main, text="登录", command=lambda: main_Window.login(text_log), relief="groove")
+        lgb = tkinter.Button(main, text="登录", command=lambda: main_Window.login(text_log, list_classes), relief="groove")
         lgb.place(x=5, y=0)
         text_log = tkinter.StringVar()
         text_log.set("未登录")
@@ -916,42 +950,36 @@ class main_Window:
         log_tip = tkinter.Label(main, bg="#E0FFFF", textvariable=text_log)
         log_tip.place(x=55, y=0)
 
-        # 显示课程
-        list_classes = tkinter.Listbox(main, bg = "#E0FFFF", height = 20, width = 40, selectmode='extended')
-        list_classes.place(x=5, y=70)
-        
-        # 显示章节
-        list_chapters = tkinter.Listbox(main, bg = "#E0FFFF", height = 20, width = 40)
-        list_chapters.place(x=405, y =70)
-
-        # 获取课程
-        get_class_bottom = tkinter.Button(main, text="获取课程", command=lambda:step_2(list_classes) , relief="groove")
-        get_class_bottom.place(x=5, y=565)
-
         # 获取章节
-        get_chapters_bottom = tkinter.Button(main, text="获取章节", command=lambda:print_chapters(course_dict[int(list_classes.curselection()[0] + 1)][1], list_chapters), relief="groove")
-        get_chapters_bottom.place(x=75,y=565)
+        get_chapters_bottom = tkinter.Button(main, text="获取章节", command=lambda:
+        print_chapters(course_dict[int(list_classes.curselection()[0] + 1)][1], list_chapters), relief="groove")
+        get_chapters_bottom.place(x=55,y=565)
         
         # 完成任务点
-        complear_fewclass_bottom = tkinter.Button(main, text="完成课程中的任务节点（不包含测验）", command=lambda:Things.misson_4(Things, list_classes, main, progress), relief="groove")
-        complear_fewclass_bottom.place(x=145, y=565)
+        complear_fewclass_bottom = tkinter.Button(main, text="完成课程中的任务节点（不包含测验）", command=lambda:
+        Things.misson_4(Things, list_classes, main, progress), relief="groove")
+        complear_fewclass_bottom.place(x=125, y=565)
 
         # 下载
-        download = tkinter.Button(main, text="下载课程资源", command=lambda:Things.misson_1(Things, list_chapters), relief="groove")
-        download.place(x=405, y=565)
+        download = tkinter.Button(main, text="下载课程资源", command=lambda:
+        Things.misson_1(Things, list_chapters, main, progress), relief="groove")
+        download.place(x=385, y=565)
 
         # 刷学习次数
-        Number_learningtimes = tkinter.Button(main, text="刷取课程学习次数", command=lambda:Things.misson_2(Things, list_classes), relief="groove")
-        Number_learningtimes.place(x=505, y=565)
+        Number_learningtimes = tkinter.Button(main, text="刷取课程学习次数", command=lambda:
+        Things.misson_2(Things, list_classes, main, progress), relief="groove")
+        Number_learningtimes.place(x=485, y=565)
 
         # 刷学习时间
-        Swipelearning = tkinter.Button(main, text="刷取视频学习时间", command=lambda:Things.misson_3(Things), relief="groove")
-        Swipelearning.place(x=639, y=565)
+        Swipelearning = tkinter.Button(main, text="刷取视频学习时间", command=lambda:
+        Things.misson_3(Things, main, progress, list_classes), relief="groove")
+        Swipelearning.place(x=619, y=565)
 
         return main
 
+
     # login
-    def login(text_log):
+    def login(text_log, list_classes):
         # Login window
         lgw = tkinter.Toplevel()
         lgw.geometry("300x300")
@@ -972,12 +1000,14 @@ class main_Window:
         lgw.attributes("-alpha",0.85)
         lgw.config(background ="#E0FFFF")
         lgb = tkinter.Button(lgw, text = "点击登录", command = lambda : step_1(account.get(), 
-        password.get(), lgw, text_log), relief="groove")
+        password.get(), lgw, text_log, list_classes), relief="groove")
         lgb.grid(row=3, column=0, sticky="w", padx=10, pady=5)
+
 
     def restart(self):
         self.destroy()
         main_Window.start(main_Window)
+
 
     def start(self):
         self.before_start()
@@ -986,6 +1016,6 @@ class main_Window:
 
         self.mainloop()
 
-if __name__ == "__main__":
 
-    main_Window.start(main_Window)
+if __name__ == "__main__":
+    main_Window = main_Window.start(main_Window)
