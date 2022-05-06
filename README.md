@@ -36,4 +36,4 @@
 - 可能遇到的问题：**详见本仓库的 [Disscussion](https://github.com/liuyunfz/chaoxing_tool/discussions/3)**   
 - 未来：**详见本仓库的 [Project](https://github.com/liuyunfz/chaoxing_tool/projects)**  
 - 本项目长期更新维护，如果您发现用不了或者其他bug欢迎提交issue,在 [discussions](https://github.com/liuyunfz/chaoxing_tool/discussions) 发起讨论或者联系我。  
-- 有关超星网络协议的分析过程我也已经放到了我的博客中，欢迎访问 [超星学习通网课分析](https://blog.6yfz.cn/tutorial/python-spider-chaoxin
+- 有关超星网络协议的分析过程我也已经放到了我的博客中，欢迎访问 [超星学习通网课分析](https://blog.6yfz.cn/tutorial/python-spider-chaoxing.html)   

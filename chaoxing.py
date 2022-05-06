@@ -62,12 +62,12 @@ def step_1(uname, password, lgw, text_log, list_classes):
     sign_in_rsp = sign_in(uname, password)
     sign_in_json = sign_in_rsp.json()
     if sign_in_json['status'] == False:
-        tkinter.messagebox.showerror('错误','登陆失败！')
+        tkinter.messagebox.showerror('错误', '登陆失败！')
         sign_sus = False
         return False
     else:
         sign_sus = True
-        tkinter.messagebox.showinfo('提示','登录成功！') 
+        tkinter.messagebox.showinfo('提示', '登录成功！') 
     global cookieStr, uid, global_headers
     uid = sign_in_rsp.cookies['_uid']
     cookieStr = ''
@@ -89,7 +89,7 @@ def step_2(list_classes):
     class_rsp = requests.get(url=class_url, headers=global_headers)
     if class_rsp.status_code == 200:
         class_HTML = etree.HTML(class_rsp.text)
-        tkinter.messagebox.showinfo('提示','处理成功！') 
+        tkinter.messagebox.showinfo('提示', '处理成功！') 
         i = 0
         global course_dict
         course_dict = {}
@@ -224,7 +224,7 @@ def deal_course_select(url_class, main, progress):
         for course_unit in course_unit_list:
             recursive_course(course_unit.xpath("./div"), chapter_mission, 1)
     except Exception as e:
-        tkinter.messagebox.showerror('错误',e)
+        tkinter.messagebox.showerror('错误', e)
     # if len(chapter_mission) > 20:
     #     print("章节数大于20，已为您自动启动多线程")
     #     threadQueue = createThread(6, createQueue(chapter_mission), new_url_dict["cpi"])
@@ -477,7 +477,7 @@ def deal_misson(missons: list, class_cpi: str, mode: int, main, progress):
                 tkinter.messagebox.showerror('错误',e)
                 continue
     progress['value'] = 100
-    tkinter.messagebox.showinfo('提示','课程读取完成！') 
+    tkinter.messagebox.showinfo('提示', '课程读取完成！') 
 
 # 判断媒体类型并处理
 def medias_deal(data, clazzId, chapterId, courseId, chapterUrl):
@@ -542,7 +542,7 @@ def medias_download(medias):
         downloads_dict[i] = [filename, download]
         print(i, ".       ", filename)
     if downloads_dict == {}:
-        tkinter.messagebox.showinfo('提示','所在章节无可下载的资源')
+        tkinter.messagebox.showinfo('提示', '所在章节无可下载的资源')
         return
     enter = input("请输入你要下载资源的序号，以逗号分隔：")
     enter_list = enter.split(",")
@@ -679,9 +679,9 @@ def get_task_status(url: str, main, progress):
                     else:
                         continue
             except Exception as e:
-                tkinter.messagebox.showerror('错误',e)
+                tkinter.messagebox.showerror('错误', e)
                 return 0
-        tkinter.messagebox.showinfo('提示','读取成功') 
+        tkinter.messagebox.showinfo('提示', '读取成功') 
         return 0
 
 
@@ -760,7 +760,7 @@ class Things():
                 tkinter.messagebox.showinfo('提示','课程处理完成！') 
                 break
             except Exception as e:
-                tkinter.messagebox.showerror('错误',e)
+                tkinter.messagebox.showerror('错误', e)
                 return -1
 
 
@@ -778,7 +778,7 @@ class Things():
                             ,prompt='未防止频次过快的次数刷取造成理论与实际误差较大，需要您手动指定每次次数刷取的间隔 请输入间隔时间(单位秒)：',initialvalue = '1')
                         delay = int(delay)
                     except:
-                        tkinter.messagebox.showerror('错误 将使用默认时间',e)
+                        tkinter.messagebox.showerror('错误 将使用默认时间', e)
                         delay = 1
                     for num in range(count):
                         set_log(course_dict[int(enter)][1])
@@ -789,10 +789,10 @@ class Things():
                     tkinter.messagebox.showinfo('提示','课程处理完成！') 
                     break
                 except Exception as e:
-                    tkinter.messagebox.showerror('错误',e)
+                    tkinter.messagebox.showerror('错误', e)
                     return -1
             except Exception as e:
-                tkinter.messagebox.showerror('错误',e)
+                tkinter.messagebox.showerror('错误', e)
                 return -1
 
 
@@ -829,7 +829,7 @@ class Things():
                 if len(video_url_list) == 0:
                     progress['value'] = 100
                     main.update()
-                    tkinter.messagebox.showinfo('提示','课程处理完成！') 
+                    tkinter.messagebox.showinfo('提示', '课程处理完成！') 
                 else:
                     progress['value'] = 0
                     main.update()
@@ -872,7 +872,7 @@ class Things():
                     tkinter.messagebox.showinfo('提示','课程处理完成！') 
                 break
             except Exception as e:
-                tkinter.messagebox.showerror('错误',e)
+                tkinter.messagebox.showerror('错误', e)
                 return -1
 
 
@@ -906,7 +906,7 @@ class main_Window:
         , justify = "left", bg = "#E0FFFF", fg = "black").pack()
         tkinter.Button(bw, text="点击确认", command=bw.destroy, relief="groove").pack()
 
-        bw.attributes("-alpha",0.85)
+        bw.attributes("-alpha", 0.85)
         bw.config(background ="#E0FFFF")
         bw.mainloop()
 
@@ -918,7 +918,7 @@ class main_Window:
         main.geometry('800x600')
         main.title("ChaoXing Tool")
         main.resizable()
-        main.attributes("-alpha",0.85)
+        main.attributes("-alpha", 0.85)
         main.config(background ="#E0FFFF")
         main.iconphoto(True, tkinter.PhotoImage(file='./resource/icon.png'))
 
@@ -953,7 +953,7 @@ class main_Window:
         # 获取章节
         get_chapters_bottom = tkinter.Button(main, text="获取章节", command=lambda:
         print_chapters(course_dict[int(list_classes.curselection()[0] + 1)][1], list_chapters), relief="groove")
-        get_chapters_bottom.place(x=55,y=565)
+        get_chapters_bottom.place(x=55, y=565)
         
         # 完成任务点
         complear_fewclass_bottom = tkinter.Button(main, text="完成课程中的任务节点（不包含测验）", command=lambda:
@@ -992,7 +992,7 @@ class main_Window:
 
         # input
         account = tkinter.Entry(lgw)
-        password = tkinter.Entry(lgw,show = '*')
+        password = tkinter.Entry(lgw, show = '*')
         account.grid(row=0, column=1)
         password.grid(row=1, column=1)
 
