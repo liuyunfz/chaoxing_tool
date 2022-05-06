@@ -8,6 +8,7 @@ from queue import Queue
 from turtle import speed, st
 from urllib import parse
 import tkinter
+import tkinter.ttk
 
 import base64
 import os
@@ -85,7 +86,7 @@ def step_2(list_classes):
     class_rsp = requests.get(url=class_url, headers=global_headers)
     if class_rsp.status_code == 200:
         class_HTML = etree.HTML(class_rsp.text)
-        print("处理成功\n")
+        tkinter.messagebox.showinfo('提示','处理成功！') 
         i = 0
         global course_dict
         course_dict = {}
@@ -118,7 +119,7 @@ def step_2(list_classes):
         #         except:
         #             pass
     else:
-        print("课程处理失败，请联系作者")
+        tkinter.messagebox.showerror('课程处理失败')
     # print(course_dict)
     return course_dict
 
@@ -208,7 +209,7 @@ def createThread(threadCount, urlQueue, cpi):
 
 
 # 选取有任务点的课程,并处理
-def deal_course_select(url_class):
+def deal_course_select(url_class, main, progress):
     new_url_dict = url_302(url_class)
     new_url = new_url_dict["new_url"]
     course_HTML = course_get(new_url)
@@ -217,12 +218,9 @@ def deal_course_select(url_class):
     try:
         course_unit_list = course_HTML.xpath("//div[@class='units']")
         for course_unit in course_unit_list:
-            print(__list_get(course_unit.xpath("./h2/a/@title")))
             recursive_course(course_unit.xpath("./div"), chapter_mission, 1)
     except Exception as e:
-        print("deal_course_select error %s" % e)
-
-    print("课程读取完成，共有%d个章节可一键完成" % len(chapter_mission))
+        tkinter.messagebox.showerror('错误',e)
     # if len(chapter_mission) > 20:
     #     print("章节数大于20，已为您自动启动多线程")
     #     threadQueue = createThread(6, createQueue(chapter_mission), new_url_dict["cpi"])
@@ -231,7 +229,7 @@ def deal_course_select(url_class):
     #     for thread in threadQueue:
     #         thread.join()  # 线程池销毁
     # else:
-    deal_misson(chapter_mission, new_url_dict["cpi"], 0)
+    deal_misson(chapter_mission, new_url_dict["cpi"], 0, main, progress)
 
 
 # 递归读取所有课程信息，返回dict
@@ -444,7 +442,7 @@ def set_log(course_url: str):
 
 
 # 处理任务
-def deal_misson(missons: list, class_cpi: str, mode: int):
+def deal_misson(missons: list, class_cpi: str, mode: int, main, progress):
     for chapter_mission_item in missons:
         result = parse.urlparse(chapter_mission_item)
         chapter_data = parse.parse_qs(result.query)
@@ -454,7 +452,6 @@ def deal_misson(missons: list, class_cpi: str, mode: int):
         cardcount = int(read_cardcount(courseId, clazzId, chapterId, class_cpi))
         for num in range(cardcount):
             try:
-                print("num:", num)
                 medias_url = "https://mooc1-2.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(clazzId, courseId, chapterId, class_cpi, num)
                 medias_rsp = requests.get(url=medias_url, headers=global_headers)
                 medias_HTML = etree.HTML(medias_rsp.text)
@@ -468,10 +465,13 @@ def deal_misson(missons: list, class_cpi: str, mode: int):
                 else:
                     # mode 1 download medias
                     medias_download(datas["attachments"])
+                progress['value'] += 3
+                main.update()
             except Exception as e:
-                print(medias_url + " error", e)
+                tkinter.messagebox.showerror('错误',e)
                 continue
-
+    progress['value'] = 100
+    tkinter.messagebox.showinfo('提示','课程读取完成！') 
 
 # 判断媒体类型并处理
 def medias_deal(data, clazzId, chapterId, courseId, chapterUrl):
@@ -730,109 +730,18 @@ class video_nomal_thread(threading.Thread):
         url_tmp = re.sub("playingTime=\\d+", "playingTime=%d" % now_time, self.url)
         url_tmp = re.sub("enc=[0-9a-zA-Z]+", "enc=%s" % enc_tmp, url_tmp)
         return url_tmp
+
+
 # 自定义任务类，处理菜单任务
 class Things():
     def __init__(self, username='nobody'):
         self.username = username
 
-    def misson_1(self):
-        print("开始处理课程中....\n")
-        global video_url_list
-        video_url_list = []
-        for course_item in course_dict:
-            print("开始处理'%s'..." % course_dict[course_item][0])
-            deal_course_select(course_dict[course_item][1])
-            print("'%s' 课程处理完成\n" % course_dict[course_item][0])
-
-        print("除视频节点外任务已完成，接下来将对剩下的%d个视频节点进行处理" % len(video_url_list))
-        
-        speed = tkinter.messagebox.askquestion(title = 'Chaoxing Tool',message='立即完成(1秒即可完成视频任务点)？是--立刻 否--常规速度')
-
-        if speed:
-            for item in video_url_list:
-                multimedia_headers = {
-                    'Accept': '*/*',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-                    'Connection': 'keep-alive',
-                    'Content-Type': 'application/json',
-                    'Cookie': cookieStr,
-                    'Host': 'mooc1-1.chaoxing.com',
-                    'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
-                    'Sec-Fetch-Dest': 'empty',
-                    'Sec-Fetch-Mode': 'cors',
-                    'Sec-Fetch-Site': 'same-origin',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
-                }
-                rsp = requests.get(url=item.replace("isdrag=0", "isdrag=4"), headers=multimedia_headers)
-                print(rsp.text)
-        else:
-            video_nomal_thread_pool = []
-            for video_item in video_url_list:
-                video_nomal_thread_pool.append(video_nomal_thread(video_item))
-            for item in video_nomal_thread_pool:
-                item.start()
-                time.sleep(1)
-            print("\n视频线程已全部启动\n")
-            for item in video_nomal_thread_pool:
-                item.join()
-        tkinter.messagebox.showinfo('提示','课程处理完成！') 
-
-    def misson_2(self,list_classes):
-        while True:
-            try:
-                global video_url_list
-                video_url_list = []
-                enter = list_classes.curselection()[0] + 1
-                deal_course_select(course_dict[int(enter)][1])
-                if len(video_url_list) == 0:
-                    tkinter.messagebox.showinfo('提示','课程处理完成！') 
-                else:
-                    print("除视频节点外任务已完成，接下来将对剩下的%d个视频节点进行处理" % len(video_url_list))
-                    speed = tkinter.messagebox.askquestion(title = 'Chaoxing Tool',message='立即完成(1秒即可完成视频任务点)？是--立刻 否--常规速度')
-                    if speed:
-                        for item in video_url_list:
-                            multimedia_headers = {
-                                'Accept': '*/*',
-                                'Accept-Encoding': 'gzip, deflate, br',
-                                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-                                'Connection': 'keep-alive',
-                                'Content-Type': 'application/json',
-                                'Cookie': cookieStr,
-                                'Host': 'mooc1-1.chaoxing.com',
-                                'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
-                                'Sec-Fetch-Dest': 'empty',
-                                'Sec-Fetch-Mode': 'cors',
-                                'Sec-Fetch-Site': 'same-origin',
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
-                            }
-                            rsp = requests.get(url=item.replace("isdrag=0", "isdrag=4"), headers=multimedia_headers)
-                            print(rsp.text)
-                    else:
-                        video_nomal_thread_pool = []
-                        for video_item in video_url_list:
-                            video_nomal_thread_pool.append(video_nomal_thread(video_item))
-                        for item in video_nomal_thread_pool:
-                            item.start()
-                            time.sleep(1)
-                        print("\n视频线程已全部启动\n")
-                        for item in video_nomal_thread_pool:
-                            item.join()
-
-                    tkinter.messagebox.showinfo('提示','课程处理完成！') 
-
-                break
-            except Exception as e:
-                print("error:%s" % e)
-                tkinter.messagebox.showerror('错误',e)
-                return -1
-
     # 下载课程
-    def misson_3(self, list_classes):
+    def misson_1(self, list_classes):
         while True:
             try: 
                 enter = list_classes.curselection()[0] + 1
-                print(enter)
                 deal_course_all(enter)
                 tkinter.messagebox.showinfo('提示','课程处理完成！') 
                 break
@@ -841,7 +750,7 @@ class Things():
                 return -1
 
     # 刷学习次数
-    def misson_4(self, list_classes):
+    def misson_2(self, list_classes):
         while True:
             enter = list_classes.curselection()[0] + 1
             try:
@@ -868,10 +777,10 @@ class Things():
                 return -1
 
     # 刷取学习时间
-    def misson_5(self):
+    def misson_3(self):
         threadPool = []
         for i in range(len(course_dict)):
-            print("正在读取 %s :" % (course_dict[i + 1][0]))
+            tkinter.messagebox.showinfo('提示','正在读取') 
             isThread = get_task_status(course_dict[i + 1][1])
             if isThread:
                 threadPool.append(isThread)
@@ -883,54 +792,79 @@ class Things():
             j.join()
         tkinter.messagebox.showinfo('提示','课程处理完成！') 
 
-
-    # 批量刷选择的课程
-    def misson_6(self, list_classes):
+    # 完成课程的任务点
+    def misson_4(self, list_classes, main, progress):
         while True:
             enter = list_classes.curselection()
             try:
                 global video_url_list
                 video_url_list = []
                 for i in enter:
-                    deal_course_select(course_dict[int(i+1)][1])
-                    for item in video_url_list:
-                        multimedia_headers = {
-                            'Accept': '*/*',
-                            'Accept-Encoding': 'gzip, deflate, br',
-                            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-                            'Connection': 'keep-alive',
-                            'Content-Type': 'application/json',
-                            'Cookie': cookieStr,
-                            'Host': 'mooc1-1.chaoxing.com',
-                            'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
-                            'Sec-Fetch-Dest': 'empty',
-                            'Sec-Fetch-Mode': 'cors',
-                            'Sec-Fetch-Site': 'same-origin',
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
-                        }
-                        rsp = requests.get(url=item.replace("isdrag=0", "isdrag=4"), headers=multimedia_headers)
-                        print(rsp.text)
-                tkinter.messagebox.showinfo('提示','课程处理完成！') 
+                    deal_course_select(course_dict[int(i+1)][1], main, progress)
+                if len(video_url_list) == 0:
+                    progress['value'] = 100
+                    main.update()
+                    tkinter.messagebox.showinfo('提示','课程处理完成！') 
+                else:
+                    progress['value'] = 0
+                    main.update()
+                    speed = tkinter.messagebox.askquestion(title = 'Chaoxing Tool',message='立即完成(1秒即可完成视频任务点)？是--立刻 否--常规速度')
+                    if speed:
+                        for item in video_url_list:
+                            multimedia_headers = {
+                                'Accept': '*/*',
+                                'Accept-Encoding': 'gzip, deflate, br',
+                                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                                'Connection': 'keep-alive',
+                                'Content-Type': 'application/json',
+                                'Cookie': cookieStr,
+                                'Host': 'mooc1-1.chaoxing.com',
+                                'Referer': 'https://mooc1-1.chaoxing.com/ananas/modules/video/index.html?v=2020-0907-1546',
+                                'Sec-Fetch-Dest': 'empty',
+                                'Sec-Fetch-Mode': 'cors',
+                                'Sec-Fetch-Site': 'same-origin',
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+                            }
+                            rsp = requests.get(url=item.replace("isdrag=0", "isdrag=4"), headers=multimedia_headers)
+                            print(rsp.text)
+                            progress['value'] += (100/len(video_url_list))
+                            main.update()
+                    else:
+                        video_nomal_thread_pool = []
+                        for video_item in video_url_list:
+                            video_nomal_thread_pool.append(video_nomal_thread(video_item))
+                        for item in video_nomal_thread_pool:
+                            item.start()
+                            time.sleep(1)
+                            progress['value'] += 1
+                        tkinter.messagebox.showinfo('提示','视频线程已全部启动') 
+                        for item in video_nomal_thread_pool:
+                            item.join()
+
+                    # 完成
+                    progress['value'] = 100
+                    main.update()
+                    tkinter.messagebox.showinfo('提示','课程处理完成！') 
                 break
             except Exception as e:
                 tkinter.messagebox.showerror('错误',e)
                 return -1
 
+
 # main window class
 class main_Window:
-
     def __init__(self):
         self.bit = True
 
     bit = False
+
     # before_start tip
     def before_start():
         bw = tkinter.Tk()
         bw.geometry('850x500')
         bw.title("ChaoXing Tool")
+        bw.iconphoto(True, tkinter.PhotoImage(file='./icon.png'))
 
-        bw.attributes('-toolwindow', 1)
-        
         txt = "欢迎您使用 chaoxing_tool , 本工具是针对超星(学习通)所编写的Python脚本工具\n" +  \
         "本工具完全免费且开源，项目地址: https://github.com/liuyunfz/chaoxing_tool\n" + \
         "使用前请确认您使用的是最新版，防止因为超星系统更新导致的功能失效\n"+ \
@@ -943,10 +877,10 @@ class main_Window:
         "6.其中快速完成可能会导致异常，而常规完成则会同步视频时长完成（需要保证软件保持开启状态）用于避免可能由时长\n带来的异常" + \
         "7.如果您在使用中有疑问或者遇到了BUG，请前往提交Issue: https://github.com/liuyunfz/chaoxing_tool/issues\n"+\
         "确认后正式使用本软件:\n"
-        msg = tkinter.Message(bw, text=txt, width = 1000, anchor = "w"
+        tkinter.Message(bw, text=txt, width = 1000, anchor = "w"
         , justify = "left", bg = "#E0FFFF", fg = "black").pack()
-        b = tkinter.Button(bw, text="点击确认", command=bw.destroy, relief="groove").pack()
-        
+        tkinter.Button(bw, text="点击确认", command=bw.destroy, relief="groove").pack()
+
         bw.attributes("-alpha",0.85)
         bw.config(background ="#E0FFFF")
         bw.mainloop()
@@ -960,43 +894,58 @@ class main_Window:
         main.resizable()
         main.attributes("-alpha",0.85)
         main.config(background ="#E0FFFF")
-        
-        main.attributes('-toolwindow', 1)
+        main.iconphoto(True, tkinter.PhotoImage(file='./icon.png'))
 
-        # call login
+        # 进度条
+        progress = tkinter.ttk.Progressbar(main, length=200)
+        progress.place(x = 300, y =500)
+        progress['maximum'] = 100
+        progress['value'] = 0
+
+        # 登录
         lgb = tkinter.Button(main, text="登录", command=lambda: main_Window.login(text_log), relief="groove")
         lgb.place(x=5, y=0)
         text_log = tkinter.StringVar()
         text_log.set("未登录")
         
+        # 退出登录
         quit_log = tkinter.Button(main, text="退出当前账号，重新登陆", command=lambda:main_Window.restart(main), relief="groove")
         quit_log.place(x=5, y=35)
 
+        # 登录状态提示
         log_tip = tkinter.Label(main, bg="#E0FFFF", textvariable=text_log)
         log_tip.place(x=55, y=0)
 
+        # 显示课程
         list_classes = tkinter.Listbox(main, bg = "#E0FFFF", height = 20, width = 40, selectmode='extended')
         list_classes.place(x=5, y=70)
         
+        # 显示章节
         list_chapters = tkinter.Listbox(main, bg = "#E0FFFF", height = 20, width = 40)
         list_chapters.place(x=405, y =70)
 
+        # 获取课程
         get_class_bottom = tkinter.Button(main, text="获取课程", command=lambda:step_2(list_classes) , relief="groove")
         get_class_bottom.place(x=5, y=565)
 
+        # 获取章节
         get_chapters_bottom = tkinter.Button(main, text="获取章节", command=lambda:print_chapters(course_dict[int(list_classes.curselection()[0] + 1)][1], list_chapters), relief="groove")
         get_chapters_bottom.place(x=75,y=565)
         
-        complear_fewclass_bottom = tkinter.Button(main, text="完成课程中的任务节点（不包含测验）", command=lambda:Things.misson_6(Things, list_classes), relief="groove")
+        # 完成任务点
+        complear_fewclass_bottom = tkinter.Button(main, text="完成课程中的任务节点（不包含测验）", command=lambda:Things.misson_4(Things, list_classes, main, progress), relief="groove")
         complear_fewclass_bottom.place(x=145, y=565)
 
-        download = tkinter.Button(main, text="下载课程资源", command=lambda:Things.misson_3(Things, list_chapters), relief="groove")
+        # 下载
+        download = tkinter.Button(main, text="下载课程资源", command=lambda:Things.misson_1(Things, list_chapters), relief="groove")
         download.place(x=405, y=565)
 
-        Number_learningtimes = tkinter.Button(main, text="刷取课程学习次数", command=lambda:Things.misson_4(Things, list_classes), relief="groove")
+        # 刷学习次数
+        Number_learningtimes = tkinter.Button(main, text="刷取课程学习次数", command=lambda:Things.misson_2(Things, list_classes), relief="groove")
         Number_learningtimes.place(x=505, y=565)
 
-        Swipelearning = tkinter.Button(main, text="刷取视频学习时间", command=lambda:Things.misson_5(Things), relief="groove")
+        # 刷学习时间
+        Swipelearning = tkinter.Button(main, text="刷取视频学习时间", command=lambda:Things.misson_3(Things), relief="groove")
         Swipelearning.place(x=639, y=565)
 
         return main
