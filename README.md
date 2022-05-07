@@ -18,8 +18,17 @@
 **前置条件：您必须本地有python环境，建议版本为3.7以上**  
 1. 将本仓库内容下载到本地电脑，如果是压缩包请记得先解压。  
 2. 在本文件目录中打开命令提示符，输入`pip install -r requirements.txt`来进行第三方模块安装  
-3. 在本文件目录中打开命令提示符,输入`python chaoxing.py`进行使用
-
+3. 在本文件目录中打开命令提示符     
+`命令行版` 输入
+```
+cd console
+python chaoxing.py
+```   
+`桌面版` 输入
+```
+cd desktop
+python chaoxing.py
+```    
 ### 方案二：Release使用
 **前置条件：Release中是通过pyinstaller编译的可执行文件，您需要完成[下载](https://github.com/liuyunfz/chaoxing_tool/releases)**  
 1. 将下载的文件进行解压  
