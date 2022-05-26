@@ -1,20 +1,19 @@
 #!/usr/bin/env python
 # _*_ coding:utf-8 _*_
-from glob import glob
 import json
 import re
 import threading
 from queue import Queue
-from turtle import speed, st
 from urllib import parse
 
 import tkinter
-import tkinter.ttk
+import tkinter.ttk as ttk
+import tkinter.messagebox
 
-import base64
+from pyDes import des, PAD_PKCS5
+import binascii
 import os
 import requests
-import sys
 import time
 from lxml import etree
 
@@ -23,6 +22,12 @@ video_url_list = []
 class_list = []
 global_headers = {}
 course_dict = {}
+
+# pwd DES 加密
+def des_pwd(msg, key):
+    des_obj = des(key, key, pad=None, padmode=PAD_PKCS5)
+    secret_bytes = des_obj.encrypt(msg, padmode=PAD_PKCS5)
+    return binascii.b2a_hex(secret_bytes)
 
 # 视频任务enc校验计算
 def encode_enc(clazzid: str, duration: int, objectId: str, otherinfo: str, jobid: str, userid: str, currentTimeSec: str):
@@ -35,7 +40,7 @@ def encode_enc(clazzid: str, duration: int, objectId: str, otherinfo: str, jobid
 # 手机号登录，返回response
 def sign_in(uname: str, password: str):
     sign_in_url = "https://passport2.chaoxing.com/fanyalogin"
-    sign_in_data = "fid=314&uname={0}&password={1}&refer=http%253A%252F%252Fi.mooc.chaoxing.com&t=true".format(uname, base64.b64encode(password.encode("utf-8")).decode("utf-8"))
+    sign_in_data = "fid=314&uname={0}&password={1}&refer=http%253A%252F%252Fi.mooc.chaoxing.com&t=true".format(uname, des_pwd(password, "u2oh6Vu^").decode("utf-8"))
     sign_in_headers = {
         'Accept': 'application/json, text/javascript, */*; q=0.01',
         'Accept-Encoding': 'gzip, deflate, br',
