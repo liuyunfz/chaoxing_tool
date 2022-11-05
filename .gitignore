@@ -3,3 +3,4 @@ build
 dist
 chaoxing.spec
 .vs
+.idea
