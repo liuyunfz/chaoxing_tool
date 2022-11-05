@@ -3,6 +3,8 @@
 本项目为个人使用过程中基于学习目的开发而来，遵循 [GPL-3.0 License](https://github.com/liuyunfz/chaoxing_tool/blob/master/LICENSE) ，如有疑问请自行阅读相关协议内容。
   
 **据网上传闻超星会监测异常，但目前测试过程中尚未发现，请酌情使用**
+
+**当视频或音频节点开启了防拖拽，即无法拖动进度条，请选择常规倍速完成。尽管如此，您仍可以同时对每个章节中的所有视音频节点进行刷取，即完成时间为最长视音频的时长。**
 # 已有功能 
 - 登陆超星账号
 - 获取章节页数
@@ -30,12 +32,12 @@ cd desktop
 python chaoxing.py
 ```    
 ### 方案二：Release使用
-**前置条件：Release中是通过pyinstaller编译的可执行文件，您需要完成[下载](https://github.com/liuyunfz/chaoxing_tool/releases)**  
-1. 将下载的文件进行解压  
-2. 打开dist目录下的exe可执行文件即可进行使用  
+  
+**Release中是通过pyinstaller编译的可执行文件，您需要完成[下载](https://github.com/liuyunfz/chaoxing_tool/releases)**  
 
 ---
-**PS**:源代码较Release更新更为频繁，但也较不稳定。release会在添加的几个功能确认稳定后才会正式发布。请根据自己的本地环境与使用需求进行选择下载。 
+**注意** :稳定版为手动发布，更新较慢。pre-release为action根据commit自动编译，更新较快。 
+
 
 # 截图
 ![img](https://user-images.githubusercontent.com/77034643/167157788-ebc85ee5-00af-4d80-bf7a-27002c94a5dc.jpg)    

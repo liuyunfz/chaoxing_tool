@@ -18,11 +18,13 @@ global video_url_list
 video_url_list = []
 class_list = []
 
+
 # pwd DES 加密
 def des_pwd(msg, key):
     des_obj = des(key, key, pad=None, padmode=PAD_PKCS5)
     secret_bytes = des_obj.encrypt(msg, padmode=PAD_PKCS5)
     return binascii.b2a_hex(secret_bytes)
+
 
 # 视频任务enc校验计算
 def encode_enc(clazzid: str, duration: int, objectId: str, otherinfo: str, jobid: str, userid: str, currentTimeSec: str):
@@ -314,6 +316,31 @@ def read_cardcount(courseId: str, clazzid: str, chapterId: str, cpi: str):
     return card_count
 
 
+#  处理Audio任务
+def misson_audio(objectId, otherInfo, jobid, name, reportUrl, clazzId):
+    status_url = "https://mooc1-2.chaoxing.com/ananas/status/{}?_dc=1667628931806".format(objectId)
+    misson_headers = {
+        "Referer": "https://mooc1-2.chaoxing.com/ananas/modules/audio/index.html?v=2022-1028-1705"
+    }
+    misson_headers.update(global_headers)
+    status_rsp = requests.get(url=status_url, headers=misson_headers)
+    status_json = None
+    try:
+        status_json = json.loads(status_rsp.text)
+    except Exception as e:
+        print("该音频任务点信息读取错误", status_rsp.status_code, status_url)
+        return
+    duration = status_json.get('duration')
+    dtoken = status_json.get('dtoken')
+    print(objectId, otherInfo, jobid, uid, name, duration, reportUrl)
+    elses = "/{0}?clazzId={1}&playingTime={2}&duration={2}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag=0&view=pc&enc={7}&rt=1&dtype=Audio&_t={8}".format(dtoken, clazzId, duration, objectId, otherInfo, jobid, uid, encode_enc(clazzId, duration, objectId, otherInfo, jobid, uid, duration), int(time.time() * 1000))
+    reportUrl_item = reportUrl + str(elses)
+    video_url_list.append(reportUrl_item)
+    print("检测到一个音频节点，已添加到任务列表")
+    # multimedia_rsp = requests.get(url=reportUrl_item, headers=misson_headers)
+    return reportUrl_item
+
+
 # 处理video任务,校验为enc
 def misson_video(objectId, otherInfo, jobid, name, reportUrl, clazzId):
     status_url = "https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(objectId)
@@ -484,7 +511,10 @@ def medias_deal(data, clazzId, chapterId, courseId, chapterUrl):
             objectId = media_item.get("objectId")
             otherInfo = media_item.get("otherInfo")
             name = media_item.get('property').get('name')
-            url_video = misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=data["defaults"]["reportUrl"], clazzId=clazzId)
+            if (media_item.get('property').get('module') == "insertaudio"):
+                misson_audio(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=data["defaults"]["reportUrl"], clazzId=clazzId)
+            else:
+                url_video = misson_video(objectId=objectId, otherInfo=otherInfo, jobid=jobid, name=name, reportUrl=data["defaults"]["reportUrl"], clazzId=clazzId)
             # multimedia_headers = {
             #     'Accept': '*/*',
             #     'Accept-Encoding': 'gzip, deflate, br',
@@ -729,6 +759,8 @@ class video_nomal_thread(threading.Thread):
         url_tmp = re.sub("playingTime=\\d+", "playingTime=%d" % now_time, self.url)
         url_tmp = re.sub("enc=[0-9a-zA-Z]+", "enc=%s" % enc_tmp, url_tmp)
         return url_tmp
+
+
 # 自定义任务类，处理菜单任务
 class Things():
     def __init__(self, username='nobody'):
@@ -750,11 +782,12 @@ class Things():
             if len(video_url_list) == 0:
                 input("\n任务已完成，回车返回主菜单")
             else:
-                print("除视频节点外任务已完成，接下来将对剩下的%d个视频节点进行处理" % len(video_url_list))
-                speed = input("请选择视频节点的完成方式 1.立即完成(1秒即可完成视频任务点) 2.常规速度完成(完成时间与视频时间等长) :")
+                print("除视频与音频节点外任务已完成，接下来将对剩下的%d个节点进行处理" % len(video_url_list))
+                print("注意！！！当节点开启了防拖拽请选择常规速度完成，否则将会完成失败")
+                speed = input("请选择节点的完成方式 1.立即完成(1秒即可完成视频任务点) 2.常规速度完成(完成时间与视频时间等长) :")
                 while speed != "1" and speed != "2":
                     print("请输入正常的序号")
-                    speed = input("请选择视频节点的完成方式 1.立即完成(1秒即可完成视频任务点) 2.常规速度完成(完成时间与视频时间等长) :")
+                    speed = input("请选择节点的完成方式 1.立即完成(1秒即可完成视音频任务点) 2.常规速度完成(完成时间与视音频时间等长) :")
                 if speed == "1":
                     for item in video_url_list:
                         multimedia_headers = {
@@ -813,11 +846,12 @@ class Things():
 
                         input("\n任务已完成，回车返回主菜单")
                     else:
-                        print("除视频节点外任务已完成，接下来将对剩下的%d个视频节点进行处理" % len(video_url_list))
-                        speed = input("请选择视频节点的完成方式 1.立即完成(1秒即可完成视频任务点) 2.常规速度完成(完成时间与视频时间等长) :")
+                        print("除视频与音频节点外任务已完成，接下来将对剩下的%d个节点进行处理" % len(video_url_list))
+                        print("注意！！！当节点开启了防拖拽请选择常规速度完成，否则将会完成失败")
+                        speed = input("请选择节点的完成方式 1.立即完成(1秒即可完成任务点) 2.常规速度完成(完成时间与视音频时间等长) :")
                         while speed != "1" and speed != "2":
                             print("请输入正常的序号")
-                            speed = input("请选择视频节点的完成方式 1.立即完成(1秒即可完成视频任务点) 2.常规速度完成(完成时间与视频时间等长) :")
+                            speed = input("请选择节点的完成方式 1.立即完成(1秒即可完成任务点) 2.常规速度完成(完成时间与视音频时间等长) :")
                         if speed == "1":
                             for item in video_url_list:
                                 multimedia_headers = {
@@ -924,14 +958,13 @@ class Things():
         for j in threadPool:
             j.join()
 
-
     # 清屏
     def misson_6(self):
         os.system("cls")
+
     def misson_7(self):
         step_1()
         step_2()
-
 
     # 批量刷选择的课程
     def misson_8(self):
@@ -943,7 +976,6 @@ class Things():
             enter = True
             enter = input("输入你要完成的课程序号(各课程序号换行输入，q回退主菜单 end结束输入)：")
             if enter != "end":
-
                 class_list.append(enter)
             try:
                 if enter == "q":
@@ -985,7 +1017,7 @@ class Things():
                 print("error:%s" % e)
         return 0
 
-      
+
 class Menu():
     def __init__(self):
         self.thing = Things()
@@ -1014,6 +1046,7 @@ class Menu():
 8.退出当前账号，重新登陆
 9.退出本程序
         """)
+
     def run(self):
         while True:
             self.display_menu()
@@ -1027,6 +1060,8 @@ class Menu():
 
     def quit(self):
         sys.exit(0)
+
+
 def before_start() -> None:
     print("欢迎您使用 chaoxing_tool , 本工具是针对超星(学习通)所编写的Python脚本工具")
     print("本工具完全免费且开源，项目地址: https://github.com/liuyunfz/chaoxing_tool")
@@ -1042,6 +1077,7 @@ def before_start() -> None:
     print("7.如果您在使用中有疑问或者遇到了BUG，请前往提交Issue: https://github.com/liuyunfz/chaoxing_tool/issues")
 
     input("\n回车确认后正式使用本软件:")
+
 
 if __name__ == "__main__":
     before_start()
