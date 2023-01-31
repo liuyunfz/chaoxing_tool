@@ -1,0 +1,25 @@
+InfoStr:
+  instructions: |-
+    欢迎您使用 chaoxing_tool , 本工具是针对超星(学习通)所编写的Python脚本工具
+    本工具完全免费且开源，项目地址: https://github.com/liuyunfz/chaoxing_tool
+    使用前请确认您使用的是最新版，防止因为超星系统更新导致的功能失效
+    
+    且确认以下须知与功能介绍:
+    1.本项目支持一键完成的任务点不包括考试与测试
+    2.输入密码时会被自动隐藏，防止您的密码被偷窥
+    3.项目不能完全保证不被系统识别异常，请理性使用
+    4.所有功能均采用发送GET/POST请求包完成，效率更高且占用资源低
+    5.如果您在使用中有疑问或者遇到了BUG，请前往提交Issue: https://github.com/liuyunfz/chaoxing_tool/issues
+  signStr: |-
+    1.使用用户名（手机号）与密码进行登录
+    2.使用Cookie进行登录
+    请选择您的登录方式：
+  errSignMode: 请输入正确的序号，如果您不清楚怎么选，请默认选择1
+
+GloConfig:
+  timeout: 3
+  headers:
+    User-Agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
+  debug:
+    enable: True
+    level: 8
