@@ -1,5 +1,8 @@
 # _*_ coding:utf-8 _*_
 # author: liuyunfz
+import json
+from ..SelfException import LoginException, RequestException
+
 from utils import doGet, doPost, encrypt_des
 
 
@@ -21,9 +24,26 @@ class User:
             'X-Requested-With': 'XMLHttpRequest'
         }
         if cookieStr == "":
+            self.username = username
             rsp = doPost("https://passport2.chaoxing.com/fanyalogin",
                          headers=self.headers,
                          data="fid=314&uname={0}&password={1}&refer=http%253A%252F%252Fi.mooc.chaoxing.com&t=true"
                          .format(username, encrypt_des(password, "u2oh6Vu^").decode('utf-8')),
                          ifFullBack=True)
-            print(rsp.text)
+            if rsp.status_code == 200:
+                rsp_json = json.loads(rsp.text)
+                if rsp_json.get("status"):
+                    self.name = rsp_json.get("name")
+                    self.uid = rsp.cookies.get('_uid')
+                    for item in rsp.cookies:
+                        cookieStr = cookieStr + item.name + '=' + item.value + ';'
+                    self.cookieStr = cookieStr
+                else:
+                    raise LoginException(rsp_json.get("msg2"))
+            else:
+                raise RequestException(rsp, 1)
+
+    def __str__(self):
+        return "\n".join([f"Uid: {self.uid}",
+                          f"Username: {self.username}",
+                          f"Cookie: {self.cookieStr}"])

@@ -7,6 +7,8 @@ import yaml
 import pyDes
 import binascii
 
+from classis.SelfException import RequestException
+
 with open("config.yml", "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)
     glo_headers = config.get("GloConfig").get("headers")
@@ -31,7 +33,7 @@ def doGet(url: str, headers: 'dict|str' = glo_headers, ifFullBack: bool = False)
         if html.status_code == 200:
             return html.text
         else:
-            raise BaseException("网页状态码返回不正确:%s" % html.status_code)
+            raise RequestException(html, 0)
 
     except Exception as e:
         logger.error(f"Get Url {url} Error\n {e}")
@@ -49,13 +51,14 @@ def doPost(url: str, headers: 'dict|str' = glo_headers, data: 'dict|str' = "", i
     """
     try:
         logger.debug("Do Post to Url %s" % url)
+        logger.debug("With data: %s" % data)
         html = post(url=url, headers=headers, data=data, timeout=glo_timeout)
         if ifFullBack:
             return html
         if html.status_code == 200:
             return html.text
         else:
-            raise BaseException("网页状态码返回不正确:%s" % html.status_code)
+            raise RequestException(html, 1)
 
     except Exception as e:
         logger.error(f"Post Url {url} Error\n {e}")
