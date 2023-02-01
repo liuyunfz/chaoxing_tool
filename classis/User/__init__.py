@@ -2,12 +2,16 @@
 # author: liuyunfz
 import json
 from ..SelfException import LoginException, RequestException
+from ..Course import Course
+from lxml import etree
+from loguru import logger
 
-from utils import doGet, doPost, encrypt_des
+from utils import doGet, doPost, encrypt_des, xpath_first, direct_url
 
 
 class User:
     def __init__(self, username: str = "", password: str = "", cookieStr: str = ""):
+        self.course_list = []
         self.headers = {
             'Accept': 'application/json, text/javascript, */*; q=0.01',
             'Accept-Encoding': 'gzip, deflate, br',
@@ -38,6 +42,10 @@ class User:
                     for item in rsp.cookies:
                         cookieStr = cookieStr + item.name + '=' + item.value + ';'
                     self.cookieStr = cookieStr
+                    self.headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51',
+                        "Cookie": cookieStr
+                    }
                 else:
                     raise LoginException(rsp_json.get("msg2"))
             else:
@@ -47,3 +55,21 @@ class User:
         return "\n".join([f"Uid: {self.uid}",
                           f"Username: {self.username}",
                           f"Cookie: {self.cookieStr}"])
+
+    def getCourse(self):
+        self.course_list.clear()
+        html = doGet(url="https://mooc2-ans.chaoxing.com/mooc2-ans/visit/courses/list?v=1675234609566&rss=1&start=0&size=500&catalogId=0&superstarClass=0&searchname=", headers=self.headers)
+        ele = etree.HTML(html)
+        course_ele = ele.xpath("//ul[@id='courseList']/li")
+        for item in course_ele:
+            tmp_url = xpath_first(item, "./div[2]/h3/a/@href")
+            if tmp_url.startswith("http"):
+                # 如果为自己教授的课则无协议头
+                course = Course(xpath_first(item, "./div[1]/input[@class='courseId']/@value"),
+                                xpath_first(item, "./div[1]/input[@class='clazzId']/@value"),
+                                direct_url(tmp_url, self.headers),
+                                xpath_first(item, "./div[2]/h3/a/span/@title"),
+                                xpath_first(item, "./div[2]/p[@class='line2 color3']/@title")
+                                )
+                logger.debug("Add course:\n" + str(course))
+                self.course_list.append(course)

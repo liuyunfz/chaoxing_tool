@@ -64,6 +64,49 @@ def doPost(url: str, headers: 'dict|str' = glo_headers, data: 'dict|str' = "", i
         logger.error(f"Post Url {url} Error\n {e}")
 
 
+def xpath_first(element, path) -> 'str|int':
+    """
+    返回xpath获取到的第一个元素，如果没有则返回空字符串
+
+    :param element: etree.HTML实例
+    :param path: xpath路径
+    :return: 第一个元素或空字符串
+    """
+    res = element.xpath(path)
+    if len(res) == 1:
+        return res[0]
+    else:
+        return ""
+
+
+def direct_url(old_url: str, headers: dict, ifLoop: bool = False) -> str:
+    """
+    返回重定向后的真实Url
+
+    :param old_url: 待重定向的链接地址
+    :param headers: 附带的请求头
+    :param ifLoop: 是否迭代查询直至无跳转
+    :return: 最终的Url
+    """
+    logger.debug("Redirect old url: %s" % old_url)
+    location_new = None
+    try:
+        while location_new is None:
+            rsp = requests.get(url=old_url, headers=headers, allow_redirects=False)
+            location_new = rsp.headers.get("Location")
+            if ifLoop:
+                return location_new | old_url
+            if location_new is None:
+                logger.debug("Final url: %s" % old_url)
+                return old_url
+            else:
+                old_url = location_new
+                location_new = None
+    except Exception as e:
+        logger.error(e)
+        return ""
+
+
 def encrypt_des(msg, key):
     des_obj = pyDes.des(key, key, pad=None, padmode=pyDes.PAD_PKCS5)
     secret_bytes = des_obj.encrypt(msg, padmode=pyDes.PAD_PKCS5)

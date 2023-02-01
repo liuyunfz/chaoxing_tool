@@ -28,7 +28,21 @@ if __name__ == '__main__':
     while sign_mode not in ["1", "2", ""]:
         print("\n" + infoStr.get("errSignMode"))
         sign_mode = input(infoStr.get("signStr"))
+
+    sign_status = False
     if sign_mode == "1" or sign_mode == "":
-        username = input("\n请输入您的用户名(手机号):")
-        password = input("请输入您的密码:")
-        user = User(username, password)
+        while not sign_status:
+            try:
+                username = input("\n请输入您的用户名(手机号):")
+                password = input("请输入您的密码:")
+                user = User(username, password)
+                logger.debug(user)
+                log.success("恭喜你 %s,登录成功" % user.name)
+                sign_status = True
+            except Exception as e:
+                log.error(e)
+    else:
+        pass    # TODO 完善cookie登录与判断
+    log.info("运行读取课程任务")
+    user.getCourse()
+    log.success("课程读取成功")
