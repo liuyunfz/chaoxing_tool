@@ -13,7 +13,7 @@ with open("config.yml", "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)
     glo_headers = config.get("GloConfig").get("headers")
     glo_timeout = config.get("GloConfig").get("timeout")
-    logger.success("loading config success")
+    logger.success("Loaded config successfully")
 
 
 def doGet(url: str, headers: 'dict|str' = glo_headers, ifFullBack: bool = False) -> 'str|requests.Response':
@@ -64,9 +64,10 @@ def doPost(url: str, headers: 'dict|str' = glo_headers, data: 'dict|str' = "", i
         logger.error(f"Post Url {url} Error\n {e}")
 
 
-def xpath_first(element, path) -> 'str|int':
+def xpath_first(element, path):
     """
     返回xpath获取到的第一个元素，如果没有则返回空字符串
+    由于 lxml.etree._Element._Element 为私有类，所以不予设置返回值类型
 
     :param element: etree.HTML实例
     :param path: xpath路径
