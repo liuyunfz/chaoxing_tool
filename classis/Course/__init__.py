@@ -1,5 +1,6 @@
 # _*_ coding:utf-8 _*_
 # author: liuyunfz
+import re
 import time
 from urllib import parse
 from loguru import logger
@@ -31,6 +32,7 @@ class Course:
                           f"Cpi: {self.cpi}"])
 
     def get_chapter(self, headers):
+        self.chapter_list.clear()
         html_text = doGet(url=f"https://mooc2-ans.chaoxing.com/mooc2-ans/mycourse/studentcourse?courseid={self.course_id}&clazzid={self.class_id}&cpi={self.cpi}&ut=s&t={int(time.time())}", headers=headers)
         ele = etree.HTML(html_text)
         ele_root = xpath_first(ele, "//div[@class='fanyaChapterWhite']")
@@ -39,7 +41,7 @@ class Course:
         logger.info(f"mission_finished/mission_all: {self.mission_fn}/{self.mission_all}")
         ele_units = ele_root.xpath("./div[2]/div[@class='chapter_td']/div[@class='chapter_unit']")
         for unit in ele_units:
-            unit_catalog_name = xpath_first(unit, "./div[1]/div[1]/div[@class='catalog_name']/span/text()")
+            unit_catalog_name = xpath_first(unit, "./div[1]/div[1]/div[@class='catalog_name']/span/text()").strip()
             """
             {
                 1计算机系统概论
@@ -63,7 +65,7 @@ class Course:
             logger.debug(self._child_chapter_list)
             self.chapter_list.append({
                 "catalog_name": unit_catalog_name,
-                "child_chapter": self._child_chapter_list
+                "child_chapter": self._child_chapter_list.copy()
             })
             self._child_chapter_list.clear()
 
@@ -71,7 +73,9 @@ class Course:
         self._child_chapter_list.append({
             "name": xpath_first(element, "./div[1]/div[1]/div[@class='catalog_name']").xpath('string(.)').strip(),
             "depth": depth,
-            "knowledge_id": xpath_first(element, "./div/@onclick")
+            "knowledge_id": xpath_first(element, "./div/@onclick").split("'")[3],
+            "job_count": int(xpath_first(element, "./div[1]/div[1]/div[@class='catalog_task']/input/@value") or "0")
+
         })
         chapter_list = element.xpath("./ul/li")
         if chapter_list:

@@ -12,10 +12,11 @@ __description__ = """一键完成所有课程或所选课程中需要完成的�
 
 import os
 import re
+import time
 
 import loguru
 
-from .deal_course import deal_course
+from .deal_course import DealCourse
 import classis.User
 
 
@@ -45,8 +46,9 @@ def run(user: classis.User.User, log):
     video_url_list = []
     for course_item in course_choice:
         log.info("开始处理'%s'..." % course_item.course_name)
-        deal_course(user, course_item)
+        DealCourse(user, course_item, log).do_finish()
         log.success("'%s' 课程处理完成\n" % course_item.course_name)
+        time.sleep(0.4)
     if len(video_url_list) == 0:
         log.success("任务已完成，回车返回主菜单")
         input()

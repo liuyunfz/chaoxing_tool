@@ -18,3 +18,6 @@ class UserLogger:
 
     def success(self, message: str):
         self.log_self.success(message)
+
+    def warning(self, message: str):
+        self.log_self.warning(message)
