@@ -3,9 +3,15 @@
 import json
 import re
 import time
+
+import loguru
 from lxml import etree
 
-from classis.Media import Media
+
+from classis.Media.Book import Book
+from classis.Media.Document import Document
+from classis.Media.Live import Live
+from classis.Media.Read import Read
 from classis.Media.Video import Video
 from utils import doGet, doPost, xpath_first
 import classis.User
@@ -35,10 +41,32 @@ class DealCourse:
                         defaults = attach_item.get("defaults")
                         for media in medias:
                             media_type = media.get("type")
+                            media_module = media.get('property').get('module')
                             media_name = media.get('property').get('name')
+                            finish_status = False
                             if media_type == "video":
-                                self.log.info(f"开始处理视频任务点:{media_name}")
-                                finish_status = Video(media, self.user.headers, defaults).do_finish()
+                                if media_module == "insertaudio":
+                                    self.log.info(f"开始处理音頻任务点:{media_name}")
+                                    finish_status = Video(media, self.user.headers, defaults, "Audio").do_finish()
+                                else:
+                                    self.log.info(f"开始处理视频任务点:{media_name}")
+                                    finish_status = Video(media, self.user.headers, defaults).do_finish()
+                            elif media_type == "read":
+                                self.log.info(f"开始处理阅读任务点:{media_name}")
+                                finish_status = Read(media, self.user.headers, defaults, self.course_id).do_finish()
+                            elif media_type == "document":
+                                self.log.info(f"开始处理Doc文件任务点:{media_name}")
+                                finish_status = Document(media, self.user.headers, defaults, self.course_id).do_finish()
+                            elif media_type == "live":
+                                self.log.info(f"开始处理Doc文件任务点:{media_name}")
+                                finish_status = Live(media, self.user.headers, defaults, self.course_id).do_finish()
+                            elif "bookname" in media.get("property"):
+                                self.log.info(f"开始处理图书任务点:{media_name}")
+                                finish_status = Book(media, self.user.headers, defaults, self.course_id).do_finish()
+                            else:
+                                self.log.error(f"检测到不支持的任务点类型:{media_type}")
+                                loguru.logger.info(media)
+                                continue
 
                             if finish_status:
                                 self.log.success(f"任务点'{media_name}'完成成功")

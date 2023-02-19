@@ -67,7 +67,8 @@ class User:
                 # 如果为自己教授的课则无协议头
                 course = Course(xpath_first(item, "./div[1]/input[@class='courseId']/@value"),
                                 xpath_first(item, "./div[1]/input[@class='clazzId']/@value"),
-                                direct_url(tmp_url, self.headers),
+                                # direct_url(tmp_url, self.headers),    具体调用课程后再更新URL，避免多余的HTTP操作
+                                tmp_url,
                                 xpath_first(item, "./div[2]/h3/a/span/@title"),
                                 xpath_first(item, "./div[2]/p[@class='line2 color3']/@title")
                                 )
