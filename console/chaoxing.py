@@ -62,24 +62,37 @@ def sign_in(uname: str, password: str):
 # 任务1：用户登录，并合并cookie
 def step_1():
     sign_sus = False
-    while sign_sus == False:
-        os.system("cls")
-        uname = input("请输入您的手机号:")
-        import getpass
-        password = getpass.getpass("请输入您的密码(已自动隐藏,请放心输入):")
-        sign_in_rsp = sign_in(uname, password)
-        sign_in_json = sign_in_rsp.json()
-        if sign_in_json['status'] == False:
-            print(sign_in_json.get('msg2'), "\n\n请按回车重新键入账号数据")
-            input()
-        else:
-            sign_sus = True
-            print("登陆成功，正在处理您的数据...")
+    sign_mode = input("""1.使用用户名（手机号）与密码进行登录
+2.使用Cookie进行登录
+请选择您的登录方式：""")
+    while sign_mode not in ["1", "2", ""]:
+        print("\n请输入正确的序号，如果您不清楚怎么选，请默认选择1")
+        sign_mode = input("""1.使用用户名（手机号）与密码进行登录
+2.使用Cookie进行登录
+请选择您的登录方式：""")
     global cookieStr, uid, global_headers
-    uid = sign_in_rsp.cookies['_uid']
-    cookieStr = ''
-    for item in sign_in_rsp.cookies:
-        cookieStr = cookieStr + item.name + '=' + item.value + ';'
+    if sign_mode == "1" or sign_mode == "":
+        while sign_sus == False:
+            os.system("cls")
+            uname = input("请输入您的手机号:")
+            import getpass
+            password = getpass.getpass("请输入您的密码(已自动隐藏,请放心输入):")
+            sign_in_rsp = sign_in(uname, password)
+            sign_in_json = sign_in_rsp.json()
+            if sign_in_json['status'] == False:
+                print(sign_in_json.get('msg2'), "\n\n请按回车重新键入账号数据")
+                input()
+            else:
+                sign_sus = True
+                print("登录成功，正在处理您的数据...")
+        cookieStr = ''
+        for item in sign_in_rsp.cookies:
+            cookieStr = cookieStr + item.name + '=' + item.value + ';'
+        uid = sign_in_rsp.cookies['_uid']
+    else:
+        cookieStr = input("请输入cookie:")
+        uid = input("请输入uid:")
+
     global_headers = {
         'Cookie': cookieStr,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
