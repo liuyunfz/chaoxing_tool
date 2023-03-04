@@ -1,6 +1,10 @@
 # _*_ coding:utf-8 _*_
 # author: liuyunfz
 import json
+import re
+
+import requests
+
 from ..SelfException import LoginException, RequestException
 from ..Course import Course
 from lxml import etree
@@ -50,6 +54,29 @@ class User:
                     raise LoginException(rsp_json.get("msg2"))
             else:
                 raise RequestException(rsp, 1)
+        else:
+            self.cookieStr = cookieStr
+            self.headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51',
+                "Cookie": cookieStr
+            }
+            if self.__checkLogin():
+                self.uid = re.findall(r"_uid=(\d+);", self.cookieStr)[0] if re.findall(r"_uid=(\d+);", self.cookieStr) else ""
+                self.name = self.uid  # 获取意义不大，暂不添加
+            else:
+                raise LoginException("Cookie失效，请重新获取")
+
+    def __checkLogin(self) -> bool:
+        _url = "https://i.chaoxing.com/base/settings?t=1677930825027"
+        _headers = {
+            'Refer': 'https://i.chaoxing.com/base?t=1677930160468'
+        }
+        _headers.update(self.headers)
+        _rsp = requests.get(url=_url, headers=_headers, allow_redirects=False)
+        if _rsp.status_code == 200:
+            return True
+        else:
+            return False
 
     def __str__(self):
         return "\n".join([f"Uid: {self.uid}",

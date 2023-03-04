@@ -31,19 +31,24 @@ if __name__ == '__main__':
         sign_mode = input(infoStr.get("signStr"))
 
     sign_status = False
-    if sign_mode == "1" or sign_mode == "":
-        while not sign_status:
-            try:
+
+    while not sign_status:
+        try:
+            if sign_mode == "1" or sign_mode == "":
                 username = input("\n请输入您的用户名(手机号):")
                 password = input("请输入您的密码:")
                 user = User(username, password)
                 logger.debug(user)
                 log.success("恭喜你 %s,登录成功" % user.name)
                 sign_status = True
-            except Exception as e:
-                log.error(e)
-    else:
-        pass  # TODO 完善cookie登录与判断
+            else:
+                cookie = input("请输入账号的Cookie:")
+                user = User(cookieStr=cookie)
+                log.success("恭喜你,登录成功")
+                sign_status = True
+        except Exception as e:
+            log.error(e)
+
     log.info("运行读取课程任务")
     user.getCourse()
     log.success("课程读取成功")
@@ -66,7 +71,7 @@ if __name__ == '__main__':
         try:
             print(menu_str)
             fun_i = int(input("\n请输入您要使用功能的序号:"))
-            func = functions[fun_i-1]
+            func = functions[fun_i - 1]
             os.system("cls")
             print("\n".join([f"功能名称: {func.__disName__}",
                              f"作者: {func.__author__}",
