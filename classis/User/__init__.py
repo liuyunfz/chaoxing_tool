@@ -2,8 +2,8 @@
 # author: liuyunfz
 import json
 import re
-
 import requests
+import sys
 
 from ..SelfException import LoginException, RequestException
 from ..Course import Course
@@ -11,6 +11,8 @@ from lxml import etree
 from loguru import logger
 
 from utils import doGet, doPost, encrypt_des, xpath_first, direct_url
+
+from config import GloConfig
 
 
 class User:
@@ -28,7 +30,7 @@ class User:
             'Sec-Fetch-Dest': 'empty',
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-origin',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51',
+            'User-Agent': GloConfig.data.get("GloConfig").get("headers").get("User-Agent"),
             'X-Requested-With': 'XMLHttpRequest'
         }
         if cookieStr == "":
@@ -47,7 +49,7 @@ class User:
                         cookieStr = cookieStr + item.name + '=' + item.value + ';'
                     self.cookieStr = cookieStr
                     self.headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51',
+                        'User-Agent': GloConfig.data.get("GloConfig").get("headers").get("User-Agent"),
                         "Cookie": cookieStr
                     }
                 else:
