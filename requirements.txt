@@ -1,0 +1,4 @@
+loguru==0.6.0
+pyDes==2.0.1
+requests==2.27.1
+lxml
