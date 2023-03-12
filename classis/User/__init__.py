@@ -65,6 +65,7 @@ class User:
             if self.__checkLogin():
                 self.uid = re.findall(r"_uid=(\d+);", self.cookieStr)[0] if re.findall(r"_uid=(\d+);", self.cookieStr) else ""
                 self.name = self.uid  # 获取意义不大，暂不添加
+                self.username = self.uid
             else:
                 raise LoginException("Cookie失效，请重新获取")
 

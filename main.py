@@ -5,6 +5,8 @@ import os
 from loguru import logger
 import sys
 import importlib
+
+from classis.SelfException import LoginException
 from config import GloConfig
 from classis.User import User
 from classis.UserLogger import UserLogger
@@ -16,27 +18,34 @@ log = UserLogger()
 
 def sign_in(infoStr: dict) -> User:
     sign_status = False
+    sign_mode = ''
     os.system("cls")
-    sign_mode = input(infoStr.get("signStr"))
-    while sign_mode not in ["1", "2", ""]:
-        print("\n" + infoStr.get("errSignMode"))
+    if GloConfig.data.get("UserData").get("auto-sign") and GloConfig.data.get("UserData").get("cookie"):
+        log.info("您已开启自动登录模式且本地已检测到账号Cookie,即将校验登录...")
+        try:
+            _user = User(cookieStr=GloConfig.data.get("UserData").get("cookie"))
+            sign_status = True
+        except LoginException:
+            log.error("本地Cookie错误，即将进入常规登录...")
+    else:
         sign_mode = input(infoStr.get("signStr"))
+        while sign_mode not in ["1", "2", ""]:
+            print("\n" + infoStr.get("errSignMode"))
+            sign_mode = input(infoStr.get("signStr"))
     while not sign_status:
         try:
-            if sign_mode == "1" or sign_mode == "":
+            if sign_mode == '' or sign_mode == "1":
                 username = input("\n请输入您的用户名(手机号):")
                 password = input("请输入您的密码:")
                 _user = User(username, password)
-                logger.debug(_user)
-                log.success("恭喜你 %s,登录成功" % _user.name)
-                sign_status = True
             else:
                 cookie = input("请输入账号的Cookie:")
                 _user = User(cookieStr=cookie)
-                log.success("恭喜你,登录成功")
-                sign_status = True
+            sign_status = True
         except Exception as e:
             log.error(e)
+    logger.debug(_user)
+    log.success("恭喜你 %s,登录成功" % _user.name)
     return _user
 
 
