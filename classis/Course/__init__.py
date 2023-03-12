@@ -22,6 +22,7 @@ class Course:
         self.mission_all = 0
         self.mission_fn = 0
         self._child_chapter_list = []
+        self.url_log = ""
 
     def __str__(self) -> str:
         return "\n".join([f"CourseName: {self.course_name}",
@@ -81,3 +82,15 @@ class Course:
         if chapter_list:
             for chapter_item in chapter_list:
                 self.__recursion_chapter_item(chapter_item, depth + 1)
+
+    def get_url_log(self, headers: dict) -> str:
+        """
+        获得课程记录学习的链接，同时更新课程的URL
+        :param headers: 访问的请求头
+        :return: 课程学习记录的URL
+        """
+        if not self.url_log:
+            self.url = f"https://mooc2-ans.chaoxing.com/mooc2-ans/mycourse/studentcourse?courseid={self.course_id}&clazzid={self.class_id}&cpi={self.cpi}&ut=s&t=1678608658539"
+            _rsp = doGet(url=self.url, headers=headers)
+            self.url_log = re.findall("(https://fystat-ans.chaoxing.com/log/setlog(.)+)\"></script>", _rsp)[0][0]
+        return self.url_log

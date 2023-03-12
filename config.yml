@@ -23,3 +23,7 @@ GloConfig:
   debug:
     enable: True
     level: 8
+
+FunConfig:
+  set-log:
+    delay: 3
