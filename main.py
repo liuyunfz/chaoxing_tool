@@ -50,6 +50,7 @@ def get_course(_user: User):
 
 
 def get_config():
+    sys.path.append(".")
     GloConfig.init_yaml_data()
     _config = GloConfig.data
     config_debug = _config.get("GloConfig").get("debug")
