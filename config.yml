@@ -26,4 +26,8 @@ GloConfig:
 
 FunConfig:
   set-log:
-    delay: 3
+    delay: 30
+
+UserData:
+  cookie: ''
+  auto-sign: True

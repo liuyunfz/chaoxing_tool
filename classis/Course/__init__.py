@@ -1,12 +1,13 @@
 # _*_ coding:utf-8 _*_
 # author: liuyunfz
+import json
 import re
 import time
 from urllib import parse
 from loguru import logger
 from lxml import etree
 
-from utils import doGet, xpath_first
+from utils import doGet, xpath_first, doPost
 
 
 class Course:
@@ -94,3 +95,22 @@ class Course:
             _rsp = doGet(url=self.url, headers=headers)
             self.url_log = re.findall("(https://fystat-ans.chaoxing.com/log/setlog(.)+)\"></script>", _rsp)[0][0]
         return self.url_log
+
+    def get_count_log(self, headers: dict) -> int:
+        """
+
+        :param headers: 访问的请求头
+        :return: 课程学习总的次数
+        """
+        _headers = {
+            'Accept': 'application/json, text/javascript, */*; q=0.01',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+            'Connection': 'keep-alive',
+            'Content-Length': '73',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Host': 'stat2-ans.chaoxing.com'
+        }
+        _headers.update(headers)
+        _rsp = doPost(url="https://stat2-ans.chaoxing.com/stat2/study-pv/chart", headers=_headers, data=f"clazzid={self.class_id}&courseid={self.course_id}&cpi={self.cpi}&ut=s&year=2023&month=03")
+        return json.loads(_rsp).get("total")
