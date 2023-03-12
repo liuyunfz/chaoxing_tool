@@ -11,10 +11,11 @@
 基础功能如下：
 
 - 用户登录
-- - 手机号登录
+  - 手机号登录
   - Cookie 登录
 - 获取 用户/课程/章节 等数据
 - 日志输出
+- 程序配置读取与保存
 
 扩展功能如下：
 
@@ -32,7 +33,15 @@
 
   ![media_download](./static/func_media_download.jpg)
 
-</details>
+  </details>
+
+- 刷取课程学习次数
+
+  <details>
+
+  ![media_download](./static/func_set_log.jpg)
+
+  </details>
 
 ## 使用说明
 
