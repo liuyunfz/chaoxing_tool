@@ -72,18 +72,19 @@ def run(user: classis.User.User, log):
         print(media_all.index(media), ".", media.get("property").get("name") if media.get("property").get("name") else media.get("property").get("bookname"))
     log.success("资源展示完成")
     while True:
-        choice = input("请选择您要下载媒体的序号，用逗号分割，或者输入q退出本功能\n序号:")
-        if choice == "q":
-            return
-        else:
-            try:
+        choice = input("请选择您要下载媒体的序号，用逗号分割，直接回车则全选，或者输入q退出本功能\n序号:")
+        try:
+            if choice == "q":
+                return
+            elif choice == '':
+                for item in media_all:
+                    chapter_media.do_download("./downloads", attachment=item)
+            else:
                 for i in re.split("[,，]", choice):
                     chapter_media.do_download("./downloads", attachment=media_all[int(i)])
-                break
-            except Exception as e:
-                log.error("序号输入错误，请尝试重新输入")
-                loguru.logger.error(e)
-                chapter_choice.clear()
-                pass
+        except Exception as e:
+            log.error("序号输入错误，请尝试重新输入")
+            loguru.logger.error(e)
+            pass
     log.success("下载功能执行完毕，回车返回主菜单")
     input()
