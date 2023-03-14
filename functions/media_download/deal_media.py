@@ -2,6 +2,7 @@
 # author: liuyunfz
 import json
 import os.path
+import re
 import time
 
 import requests
@@ -61,9 +62,12 @@ class MediaDownload(DealCourse):
         }
         download_headers.update(self.user.headers)
         _headers.update(self.user.headers)
+        child_path = path + "/" + self.course_name
         if not os.path.exists(path):
             os.mkdir(path)
-
+            os.mkdir(child_path)
+        elif not os.path.exists(child_path):
+            os.mkdir(child_path)
         _status = doGet(url="https://mooc1-2.chaoxing.com/ananas/status/{}?_dc={}".format(objectid, int(time.time() * 1000)), headers=_headers)
         _status_json = json.loads(_status)
         filename = _status_json.get('filename')
@@ -73,7 +77,7 @@ class MediaDownload(DealCourse):
             _url = _status_json.get('pdf')
         else:
             _url = _status_json.get('http')
-        with open(path + "/" + name.split('.')[0] + '.' + filename.split('.')[-1], "wb") as f:
+        with open(path + "/" + self.course_name + '/' + self._get_save_name(name, filename), "wb") as f:
             rsp = requests.get(url=_url, headers=download_headers, stream=True)
             length_already = 0
             length_all = int(rsp.headers['content-length'])
@@ -83,4 +87,23 @@ class MediaDownload(DealCourse):
                     length_already += len(chunk)
                     print("\r下载进度：%d%%" % int(length_already / length_all * 100), end="", flush=True)
                     f.write(chunk)
+            print('\n')
             self.log.success(f"'{name}'下载完成")
+
+    def _get_save_name(self, name: str, filename: str):
+        """
+
+        :param name:
+        :param filename:
+        :return:
+        """
+        _end = '.' + filename.split('.')[-1]
+        name = re.sub('([\/:*?"<>|])*','',name)
+        _l = name.split(".")
+        if len(_l) == 1:
+            return name + _end
+        else:
+            if re.fullmatch('([a-z0-9]{1,7})', _l[-1]):
+                return ''.join(_l[:-1]) + _end
+            else:
+                return name + _end
