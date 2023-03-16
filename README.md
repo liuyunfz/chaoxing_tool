@@ -43,6 +43,14 @@
 
   </details>
 
+- 刷取课程视频观看时长
+
+  <details>
+
+  ![media_download](./static/func_set_time.jpg)
+
+  </details>
+
 ## 使用说明
 
 以下有两种使用方式，请根据您个人的实际情况与需求选择

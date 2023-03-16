@@ -114,3 +114,26 @@ class Course:
         _headers.update(headers)
         _rsp = doPost(url="https://stat2-ans.chaoxing.com/stat2/study-pv/chart", headers=_headers, data=f"clazzid={self.class_id}&courseid={self.course_id}&cpi={self.cpi}&ut=s&year=2023&month=03")
         return json.loads(_rsp).get("total")
+
+    def get_time_log(self, headers: dict):
+        """
+
+        :param headers: 访问的请求头
+        :return: 课程视频的累计观看时间与总时长
+        """
+        _url = f"https://stat2-ans.chaoxing.com/stat2/task/s/index?courseid={self.course_id}&cpi={self.cpi}&clazzid={self.class_id}&ut=s&"
+        _rsp = doGet(url=_url, headers=headers)
+        _ele = etree.HTML(_rsp)
+        _acc = xpath_first(_ele, "//div[@class='fl min']/span/text()")
+        _all = re.findall(r'总时长 (\d+)', _rsp)[0]
+        return [float(_acc), float(_all)]
+
+    def get_progress_data(self, headers: dict):
+        """
+
+        :param headers:
+        :return:
+        """
+        _url = f"https://stat2-ans.chaoxing.com/stat2/task/s/progress/detail?clazzid={self.class_id}&courseid={self.course_id}&cpi={self.cpi}&ut=s&page=1&pageSize=16&status=0"
+        _rsp = doGet(url=_url, headers=headers)
+        return json.loads(_rsp).get("data").get("results")
