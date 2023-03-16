@@ -72,6 +72,6 @@ class Video(Media):
             format(self.defaults.get("clazzId"), self.defaults.get("userid"), self.jobid, self.objectId, int(time_end) * 1000, "d_yHJ!$pdA~5", duration * 1000, duration)
         enc = hashlib.md5(enc_raw.encode()).hexdigest()
         url_former = self.reportUrl
-        url_later = "/{0}?clazzId={1}&playingTime={2}&duration={10}&clipTime=0_{2}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag={9}&view=pc&enc={7}&rt=0.9&dtype={11}&_t={8}". \
+        url_later = "/{0}?clazzId={1}&playingTime={2}&duration={10}&clipTime=0_{10}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag={9}&view=pc&enc={7}&rt=0.9&dtype={11}&_t={8}". \
             format(dtoken, self.defaults.get("clazzId"), time_end, self.objectId, self.attachment.get("otherInfo"), self.jobid, self.defaults.get("userid"), enc, int(time.time() * 1000), play_type, duration, self.dtype)
         return url_former + url_later
