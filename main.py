@@ -103,7 +103,8 @@ if __name__ == '__main__':
                 get_course(user)
                 continue
             elif fun_i == len(functions) + 2:
-                # config['GloConfig']['debug']['enable'] = False
+                if config['UserData']['auto-sign']:
+                    config['UserData']['cookie'] = user.cookieStr
                 GloConfig.release_yaml_data()
                 exit(0)
             else:
