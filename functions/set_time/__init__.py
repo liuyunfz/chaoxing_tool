@@ -4,20 +4,18 @@ __name__ = "set_time"
 __author__ = "liuyunfz"
 __disName__ = " ⏳ 刷取课程视频观看时长"
 __description__ = """刷取课程中视频的观看时长
-首先读取课程中累计观看时长和总时长
-随后默认针对第一个视频文件进行观看时长的刷取
+首先读取课程中的所有视频资源
+然后由用户选择要通过哪个视频进行时长刷取
+默认针对第一个视频文件进行观看时长的刷取
 """
 
 import os
-import time
+import re
+import threading
 
 import loguru
-
-from classis.Media.Video import Video
-from config import GloConfig
 import classis.User
-from functions.deal_mission import DealCourse
-from utils import doGet
+from .deal_time import DealVideo
 
 
 def run(user: classis.User.User, log):
@@ -39,62 +37,36 @@ def run(user: classis.User.User, log):
                 else:
                     log.info(f"课程时长已充足，请选择其他课程")
                     continue
-                _video = get_video(user, course, log)
-                video_status = _video.get_status()
-                if video_status:
-                    duration = video_status.get('duration')
-                    dtoken = video_status.get('dtoken')
-                    _headers = {
-                        'Accept': '*/*',
-                        'Accept-Encoding': 'gzip, deflate, br',
-                        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-                        'Connection': 'keep-alive',
-                        'Content-Type': 'application/json',
-                        'Sec-Fetch-Dest': 'empty',
-                        'Host': 'mooc1.chaoxing.com',
-                        'Sec-Fetch-Mode': 'cors',
-                        'Sec-Fetch-Site': 'same-origin',
-                        'Referer': 'https://mooc1.chaoxing.com/ananas/modules/video/index.html?v=2023-0203-1904'
-                    }
-                    _headers.update(user.headers)
-                for i in range(int(_dis)):
-                    log.info(f"当前刷取时长:{i}分钟,总时长{_dis}分钟")
-                    _url = _video.get_url(i * 60 % duration + 60, duration, dtoken, 3)
-                    _rsp = doGet(_url, _headers)
-                    loguru.logger.debug(_rsp)
-                    time.sleep(59)
-
-                log.success("课程学习次数刷取完毕")
-                log.info(f"当前课程'{course.course_name}'学习次数共{course.get_count_log(user.headers)}次")
+                _videos = DealVideo(user, course, log).get_videos()
+                for item in _videos:
+                    print(f"{_videos.index(item)}.{item.name}")
+                _video_choice = re.split("[,，]", input("请选择要刷取时长的视频序号并以逗号分隔,直接回车默认选择第一个,-1则全部选择\n序号:"))
+                thread_pool = []
+                if len(_video_choice) == 1:
+                    if _video_choice[0] == "-1":
+                        for item in _videos:
+                            _thread = threading.Thread(target=DealVideo.run_video, args=(item, user, log))
+                            thread_pool.append(_thread)
+                            _thread.start()
+                    elif _video_choice[0] == "":
+                        _thread = threading.Thread(target=DealVideo.run_video, args=(_videos[0], user, log, _dis))
+                        thread_pool.append(_thread)
+                        _thread.start()
+                    else:
+                        _thread = threading.Thread(target=DealVideo.run_video, args=(_videos[int(_video_choice[0])], user, log, _dis))
+                        thread_pool.append(_thread)
+                        _thread.start()
+                else:
+                    for i in _video_choice:
+                        _thread = threading.Thread(target=DealVideo.run_video, args=(_videos[int(i)], user, log))
+                        thread_pool.append(_thread)
+                        _thread.start()
+                for _t in thread_pool:
+                    _t.join()
+                log.success("课程学习时长刷取完毕")
+                log.info(f"当前课程'{course.course_name}'学习时长共{course.get_time_log(user.headers)[0]}分支")
                 input("回车返回主菜单")
         except Exception as e:
             loguru.logger.error(e)
             log.error("课程序号输入错误，请重新尝试\n")
             continue
-
-
-def get_video(user: classis.User.User, course, log):
-    """
-    获得该课程的第一个视频对象
-    :param user:
-    :param course:
-    :return:
-    """
-    _data = course.get_progress_data(user.headers)
-    for i in _data:
-        for j in i['list']:
-            if j['type'] == '视频':
-                _dc = DealCourse(user, course, log)
-                attachments = _dc.deal_chapter({'knowledge_id': j.get("chapterId")})
-                for attach_item in attachments:
-                    medias = attach_item.get("attachments")
-                    defaults = attach_item.get("defaults")
-                    for media in medias:
-                        media_type = media.get("type")
-                        media_module = media.get('property').get('module')
-                        media_name = media.get('property').get('name')
-                        if media_type == "video":
-                            if media_module == "insertaudio":
-                                pass
-                            else:
-                                return Video(media, user.headers, defaults)
