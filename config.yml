@@ -17,16 +17,18 @@ InfoStr:
   errSignMode: 请输入正确的序号，如果您不清楚怎么选，请默认选择1
 
 GloConfig:
-  timeout: 3
+  timeout: 3  # 全局requests模块的超时时长
   headers:
     User-Agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
   debug:
-    enable: True
+    enable: True  # 是否开启debug模式，即显示更加详细的软件日志
     level: 8
 
 FunConfig:
+  deal-mission:
+    video-mode: 0 # 0为立即完成,1为等时长刷取
   set-log:
-    delay: 30
+    delay: 30 # 刷取学习次数的延迟，单位s
 
 UserData:
   cookie: ''

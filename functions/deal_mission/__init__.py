@@ -7,7 +7,7 @@ __description__ = """一键完成所有课程或所选课程中需要完成的�
 包括视频、阅读、PPT、音频等
 但不包括测验与考试
 
-注：视频节点将放置最后处理，由您决定是立刻完成还是一倍速刷取
+注：视频节点将根据配置文件中的设置，自动选择立刻完成还是等时长速刷取
 """
 
 import os
@@ -46,7 +46,10 @@ def run(user: classis.User.User, log):
     video_url_list = []
     for course_item in course_choice:
         log.info("开始处理'%s'..." % course_item.course_name)
-        DealCourse(user, course_item, log).do_finish()
+        _deal_course = DealCourse(user, course_item, log)
+        _deal_course.do_finish()
+        for item in _deal_course.thread_pool:
+            item.join()
         log.success("'%s' 课程处理完成\n" % course_item.course_name)
         time.sleep(0.4)
     if len(video_url_list) == 0:

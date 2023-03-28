@@ -2,12 +2,13 @@
 # author: liuyunfz
 import json
 import re
+import threading
 import time
 
 import loguru
 from lxml import etree
 
-
+from config import GloConfig
 from classis.Media.Book import Book
 from classis.Media.Document import Document
 from classis.Media.Live import Live
@@ -27,9 +28,13 @@ class DealCourse:
         self.course_id = course.course_id
         self.cpi = course.cpi
         self.mission_list = []
+        self.video_mode = GloConfig.data.get("FunConfig").get("deal-mission").get("video-mode")
+        self.thread_pool = []
 
     def do_finish(self):
+        from functions.set_time import DealVideo
         self.deal_course()
+        self.thread_pool.clear()
         if self.mission_list:
             self.log.info(f"共读取到 {len(self.mission_list)} 个章节待完成")
             for mission_item in self.mission_list:
@@ -50,7 +55,16 @@ class DealCourse:
                                     finish_status = Video(media, self.user.headers, defaults, "Audio").do_finish()
                                 else:
                                     self.log.info(f"开始处理视频任务点:{media_name}")
-                                    finish_status = Video(media, self.user.headers, defaults).do_finish()
+                                    _video = Video(media, self.user.headers, defaults, name=media_name)
+                                    if self.video_mode == 0:
+                                        finish_status = _video.do_finish()
+                                    else:
+                                        _thread = threading.Thread(target=DealVideo.run_video, args=(_video, self.user, self.log))
+                                        self.thread_pool.append(_thread)
+                                        self.log.info(f"视频任务点'{media_name}'，已根据您的配置启动等时长刷取线程")
+                                        _thread.start()
+                                        continue
+
                             elif media_type == "read":
                                 self.log.info(f"开始处理阅读任务点:{media_name}")
                                 finish_status = Read(media, self.user.headers, defaults, self.course_id).do_finish()
@@ -58,7 +72,7 @@ class DealCourse:
                                 self.log.info(f"开始处理Doc文件任务点:{media_name}")
                                 finish_status = Document(media, self.user.headers, defaults, self.course_id).do_finish()
                             elif media_type == "live":
-                                self.log.info(f"开始处理Doc文件任务点:{media_name}")
+                                self.log.info(f"开始处理直播任务点:{media_name}")
                                 finish_status = Live(media, self.user.headers, defaults, self.course_id).do_finish()
                             elif "bookname" in media.get("property"):
                                 self.log.info(f"开始处理图书任务点:{media_name}")

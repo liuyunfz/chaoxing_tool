@@ -9,12 +9,13 @@ from utils import doGet
 
 
 class Video(Media):
-    def __init__(self, attachment: dict, headers, defaults: dict, dtype: str = "Video"):
+    def __init__(self, attachment: dict, headers, defaults: dict, dtype: str = "Video", name: str = ""):
         super().__init__(attachment, headers)
         self.objectId = attachment.get("objectId")
         self.reportUrl = defaults.get("reportUrl")
         self.defaults = defaults
         self.dtype = dtype
+        self.name = name
 
     def get_status(self) -> 'dict|None':
         status_url = "https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(self.objectId)
