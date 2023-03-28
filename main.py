@@ -16,11 +16,11 @@ logger.remove()
 log = UserLogger()
 
 
-def sign_in(infoStr: dict) -> User:
+def sign_in(infoStr: dict, auto_login: bool = True) -> User:
     sign_status = False
     sign_mode = ''
     os.system("cls")
-    if GloConfig.data.get("UserData").get("auto-sign") and GloConfig.data.get("UserData").get("cookie"):
+    if auto_login and GloConfig.data.get("UserData").get("auto-sign") and GloConfig.data.get("UserData").get("cookie"):
         log.info("您已开启自动登录模式且本地已检测到账号Cookie,即将校验登录...")
         try:
             _user = User(cookieStr=GloConfig.data.get("UserData").get("cookie"))
@@ -99,7 +99,7 @@ if __name__ == '__main__':
             fun_i = int(input("\n请输入您要使用功能的序号:"))
             if fun_i == len(functions) + 1:
                 os.system("cls")
-                user = sign_in(config.get("InfoStr"))
+                user = sign_in(config.get("InfoStr"), False)
                 get_course(user)
                 continue
             elif fun_i == len(functions) + 2:
