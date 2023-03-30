@@ -51,7 +51,7 @@
 
   </details>
 
-## 使用说明
+## 运行
 
 以下有两种使用方式，请根据您个人的实际情况与需求选择
 
@@ -75,6 +75,36 @@
 然后对项目需要的第三方包进行安装，您可以直接用pip进行安装`pip install -r requirements.txt`，亦或是使用诸如`virtualenv`的虚拟环境进行安装。
 
 最后通过`python main.py`运行`mian.py`文件即可
+
+### 程序配置
+
+详见项目根目录下的`config.yml`而不是`config.py`
+
+后者是对配置文件进行读取的Python文件，一般不需要进行修改
+
+以下是对`config.yml`文件中一些内容的解释
+
+```yaml
+GloConfig:
+  timeout: 3  # 全局requests模块的超时时长，即发送http请求后三秒仍未响应则会引起超时报错
+  headers:
+    User-Agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51' #全局Http请求中协议头的UA设置
+  debug:
+    enable: True  # 是否开启debug模式，即显示更加详细的软件日志
+    level: 8 # Loggru日志输出的等级门槛
+
+FunConfig:
+  deal-mission:
+    video-mode: 0 # 视频任务点刷取的模式，0为立即完成,1为等时长刷取
+  set-log:
+    delay: 30 # 刷取学习次数的延迟，单位s
+
+UserData:
+  cookie: '' # 里面填写账号Cookie，程序可以自动识别直接登录，免去每次输入账号密码。但Cookie经过一段时间会过期，预计3-30天
+  auto-sign: True # 是否开启自动登录，如果为False则即使上述cookie有内容也不会自动登录
+```
+
+如果您不太清楚以上的内容，可以不进行任何修改
 
 ## 已知问题
 
