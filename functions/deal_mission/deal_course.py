@@ -72,7 +72,7 @@ class DealCourse:
                                 self.log.info(f"开始处理Doc文件任务点:{media_name}")
                                 finish_status = Document(media, self.user.headers, defaults, self.course_id).do_finish()
                             elif media_type == "live":
-                                self.log.info(f"开始处理直播任务点:{media_name}")
+                                self.log.info(f"开始处理直播任务点:{media.get('property').get('title')}")
                                 finish_status = Live(media, self.user.headers, defaults, self.course_id).do_finish()
                             elif "bookname" in media.get("property"):
                                 self.log.info(f"开始处理图书任务点:{media_name}")

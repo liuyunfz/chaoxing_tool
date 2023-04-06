@@ -18,16 +18,13 @@ class Live(Media):
         self.courseId = courseId
 
     def do_finish(self):
-        token_url = 'https://live.chaoxing.com/courseLive/newpclive?streamName=' + self.attachment.get("property").get("streamName") + '&vdoid=' + self.attachment.get("property").get("vdoid") + '&width=630&height=530' + '&jobid=' + self.jobid + '&userId={0}&knowledgeid={1}&ut=s&clazzid={2}&courseid={3}'.format(
-            self.defaults.get("knowledgeid"), self.defaults.get("clazzId"), self.courseId)
-        token_rsp = doGet(url=token_url, headers=self.headers)
-        token_url = xpath_first(etree.HTML(token_rsp), "//iframe/@src")
-        token = parse.parse_qs(parse.urlparse(token_url).query).get("token")
-        _url = "https://zhibo.chaoxing.com/live/saveCourseJob?courseId={0}&knowledgeId={1}&classId={2}&userId={3}&jobId={4}&token={5}".format(
-            self.courseId, self.defaults.get("knowledgeid"), self.defaults.get("clazzId"), self.defaults.get("userid"), self.jobid, token[0])
+        _stream_name = self.attachment.get("property").get("streamName")
+        _vdoid = self.attachment.get("property").get("vdoid")
+        _url = "https://zhibo.chaoxing.com/saveTimePc?streamName={0}&vdoid={1}&userId={2}&isStart=0&t=1680790434506&courseId={3}".format(
+            _stream_name, _vdoid, self.defaults.get("userid"), self.courseId)
         _rsp = doGet(url=_url, headers=self.headers)
         loguru.logger.debug(_rsp)
-        if json.loads(_rsp).get("status"):
+        if _rsp == "@success":
             return True
         else:
             return False
