@@ -38,6 +38,9 @@ def run(user: classis.User.User, log):
                     log.info(f"课程时长已充足，请选择其他课程")
                     continue
                 _videos = DealVideo(user, course, log).get_videos()
+                if len(_videos) == 0:
+                    log.error("未获取到有效的课程视频，请手动检查章节是否被锁")
+                    continue
                 for item in _videos:
                     print(f"{_videos.index(item)}.{item.name}")
                 _video_choice = re.split("[,，]", input("请选择要刷取时长的视频序号并以逗号分隔,直接回车默认选择第一个,-1则全部选择\n序号:"))

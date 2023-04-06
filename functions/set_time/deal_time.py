@@ -6,6 +6,7 @@ import loguru
 
 import classis.User
 from classis.Media.Video import Video
+from classis.SelfException import RequestException
 from functions.deal_mission import DealCourse
 from utils import doGet
 
@@ -36,6 +37,9 @@ class DealVideo:
                 'Referer': 'https://mooc1.chaoxing.com/ananas/modules/video/index.html?v=2023-0203-1904'
             }
             _headers.update(user.headers)
+        else:
+            raise RequestException("视频状态获取失败")
+            return
         _dis = (duration + 59) // 60 if all_time == 0 else all_time
         for i in range(int(_dis)):
             log.info(f"'{video.name}'当前刷取时长{i + 1}分钟,总时长{_dis}分钟")
