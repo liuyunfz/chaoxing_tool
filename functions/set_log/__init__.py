@@ -26,16 +26,16 @@ def run(user: classis.User.User, log):
         choice = input("请选择您要刷取学习次数的课程序号，或者输入q退出本功能\n序号:")
         try:
             course = user.course_list[int(choice) - 1]
-            log.info(f"当前课程'{course.course_name}'学习次数共{course.get_count_log(user.headers)}次")
+            log.info(f"当前课程'{course.course_name}'学习次数共{course.get_count_log()}次")
             times = int(input("请输入要刷取的学习次数:"))
-            _url = course.get_url_log(user.headers)
+            _url = course.get_url_log()
             for i in range(1, times + 1):
                 log.info(f"正在刷取'{course.course_name}'课程第{i}次")
                 _rsp = doGet(url=_url, headers=user.headers)
                 loguru.logger.info(_rsp)
                 time.sleep(delay)
             log.success("课程学习次数刷取完毕")
-            log.info(f"当前课程'{course.course_name}'学习次数共{course.get_count_log(user.headers)}次")
+            log.info(f"当前课程'{course.course_name}'学习次数共{course.get_count_log()}次")
             input("回车返回主菜单")
             return
         except Exception as e:

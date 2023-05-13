@@ -100,7 +100,8 @@ class User:
                                 # direct_url(tmp_url, self.headers),    具体调用课程后再更新URL，避免多余的HTTP操作
                                 tmp_url,
                                 xpath_first(item, "./div[2]/h3/a/span/@title"),
-                                xpath_first(item, "./div[2]/p[@class='line2 color3']/@title")
+                                xpath_first(item, "./div[2]/p[@class='line2 color3']/@title"),
+                                headers=self.headers
                                 )
                 logger.debug("Add course:\n" + str(course))
                 self.course_list.append(course)

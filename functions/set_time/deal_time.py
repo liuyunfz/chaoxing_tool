@@ -54,7 +54,7 @@ class DealVideo:
         获得该课程的所有视频对象
         :return:
         """
-        _data = self.course.get_progress_data(self.user.headers)
+        _data = self.course.get_progress_data()
         _video_list = []
         for i in _data:
             for j in i['list']:

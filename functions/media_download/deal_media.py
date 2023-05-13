@@ -19,7 +19,7 @@ class MediaDownload(DealCourse):
 
     def deal_course(self):
         self.log.info(f"获取'{self.course_name}'课程的章节中...")
-        self.course.get_chapter(self.user.headers) if not self.course.chapter_list else None
+        self.course.get_chapter() if not self.course.chapter_list else None
         if self.course.chapter_list:
             self.log.success(f"获取'{self.course_name}'课程章节成功，即将展示")
             time.sleep(0.4)

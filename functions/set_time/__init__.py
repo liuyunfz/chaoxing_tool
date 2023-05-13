@@ -29,7 +29,7 @@ def run(user: classis.User.User, log):
                 return
             else:
                 course = user.course_list[int(choice) - 1]
-                time_list = course.get_time_log(user.headers)
+                time_list = course.get_time_log()
                 log.info(f"当前课程'{course.course_name}'视频总时长共{time_list[1]}分钟,已学习{time_list[0]}分钟")
                 if time_list[0] < time_list[1]:
                     _dis = time_list[1] - time_list[0]
@@ -67,7 +67,7 @@ def run(user: classis.User.User, log):
                 for _t in thread_pool:
                     _t.join()
                 log.success("课程学习时长刷取完毕")
-                log.info(f"当前课程'{course.course_name}'学习时长共{course.get_time_log(user.headers)[0]}分支")
+                log.info(f"当前课程'{course.course_name}'学习时长共{course.get_time_log()[0]}分支")
                 input("回车返回主菜单")
         except Exception as e:
             loguru.logger.error(e)

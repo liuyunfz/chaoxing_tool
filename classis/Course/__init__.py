@@ -11,7 +11,7 @@ from utils import doGet, xpath_first, doPost
 
 
 class Course:
-    def __init__(self, course_id: str, class_id: str, url: str, course_name: str, course_author: str, cpi: str = ""):
+    def __init__(self, course_id: str, class_id: str, url: str, course_name: str, course_author: str, cpi: str = "", headers: dict = {}):
         self.course_id = course_id
         self.class_id = class_id
         self.url = url
@@ -24,6 +24,8 @@ class Course:
         self.mission_fn = 0
         self._child_chapter_list = []
         self.url_log = ""
+        self.headers = headers
+        self._jobEnc = None
 
     def __str__(self) -> str:
         return "\n".join([f"CourseName: {self.course_name}",
@@ -33,9 +35,9 @@ class Course:
                           f"ClazzId: {self.class_id}",
                           f"Cpi: {self.cpi}"])
 
-    def get_chapter(self, headers):
+    def get_chapter(self):
         self.chapter_list.clear()
-        html_text = doGet(url=f"https://mooc2-ans.chaoxing.com/mooc2-ans/mycourse/studentcourse?courseid={self.course_id}&clazzid={self.class_id}&cpi={self.cpi}&ut=s&t={int(time.time())}", headers=headers)
+        html_text = doGet(url=f"https://mooc2-ans.chaoxing.com/mooc2-ans/mycourse/studentcourse?courseid={self.course_id}&clazzid={self.class_id}&cpi={self.cpi}&ut=s&t={int(time.time())}", headers=self.headers)
         ele = etree.HTML(html_text)
         ele_root = xpath_first(ele, "//div[@class='fanyaChapterWhite']")
         self.mission_all = 0
@@ -84,22 +86,20 @@ class Course:
             for chapter_item in chapter_list:
                 self.__recursion_chapter_item(chapter_item, depth + 1)
 
-    def get_url_log(self, headers: dict) -> str:
+    def get_url_log(self) -> str:
         """
         获得课程记录学习的链接，同时更新课程的URL
-        :param headers: 访问的请求头
         :return: 课程学习记录的URL
         """
         if not self.url_log:
             self.url = f"https://mooc2-ans.chaoxing.com/mooc2-ans/mycourse/studentcourse?courseid={self.course_id}&clazzid={self.class_id}&cpi={self.cpi}&ut=s&t=1678608658539"
-            _rsp = doGet(url=self.url, headers=headers)
+            _rsp = doGet(url=self.url, headers=self.headers)
             self.url_log = re.findall("(https://fystat-ans.chaoxing.com/log/setlog(.)+)\"></script>", _rsp)[0][0]
         return self.url_log
 
-    def get_count_log(self, headers: dict) -> int:
+    def get_count_log(self) -> int:
         """
 
-        :param headers: 访问的请求头
         :return: 课程学习总的次数
         """
         _headers = {
@@ -111,29 +111,37 @@ class Course:
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             'Host': 'stat2-ans.chaoxing.com'
         }
-        _headers.update(headers)
+        _headers.update(self.headers)
         _rsp = doPost(url="https://stat2-ans.chaoxing.com/stat2/study-pv/chart", headers=_headers, data=f"clazzid={self.class_id}&courseid={self.course_id}&cpi={self.cpi}&ut=s&year=2023&month=03")
         return json.loads(_rsp).get("total")
 
-    def get_time_log(self, headers: dict):
+    def get_time_log(self):
         """
 
         :param headers: 访问的请求头
         :return: 课程视频的累计观看时间与总时长
         """
-        _url = f"https://stat2-ans.chaoxing.com/stat2/task/s/index?courseid={self.course_id}&cpi={self.cpi}&clazzid={self.class_id}&ut=s&"
-        _rsp = doGet(url=_url, headers=headers)
+        _url = f"https://stat2-ans.chaoxing.com/stat2/task/s/index?courseid={self.course_id}&cpi={self.cpi}&clazzid={self.class_id}&ut=s&pEnc={self.jobEnc}&"
+        _rsp = doGet(url=_url, headers=self.headers)
         _ele = etree.HTML(_rsp)
         _acc = xpath_first(_ele, "//div[@class='fl min']/span/text()")
         _all = re.findall(r'总时长 (\d+)', _rsp)[0]
         return [float(_acc), float(_all)]
 
-    def get_progress_data(self, headers: dict):
+    def get_progress_data(self):
         """
 
-        :param headers:
         :return:
         """
-        _url = f"https://stat2-ans.chaoxing.com/stat2/task/s/progress/detail?clazzid={self.class_id}&courseid={self.course_id}&cpi={self.cpi}&ut=s&page=1&pageSize=16&status=0"
-        _rsp = doGet(url=_url, headers=headers)
+
+        _url_data = f"https://stat2-ans.chaoxing.com/stat2/task/s/progress/detail?clazzid={self.class_id}&courseid={self.course_id}&cpi={self.cpi}&ut=s&pEnc={self.jobEnc}&page=1&pageSize=16&status=0"
+        _rsp = doGet(url=_url_data, headers=self.headers)
         return json.loads(_rsp).get("data").get("results")
+
+    @property
+    def jobEnc(self):
+        if self._jobEnc is None:
+            _url = f"https://stat2-ans.chaoxing.com/study-data/index?courseid={self.course_id}&clazzid={self.class_id}&cpi={self.cpi}&ut=s&t=1683984845824"
+            _data = doGet(url=_url, headers=self.headers)
+            self._jobEnc = re.findall(r"jobEnc = '(.*)';", _data)[0]
+        return self._jobEnc
