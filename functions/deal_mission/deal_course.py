@@ -45,6 +45,8 @@ class DealCourse:
                         medias = attach_item.get("attachments")
                         defaults = attach_item.get("defaults")
                         for media in medias:
+                            if media.get("job") is None:
+                                continue
                             media_type = media.get("type")
                             media_module = media.get('property').get('module')
                             media_name = media.get('property').get('name')
