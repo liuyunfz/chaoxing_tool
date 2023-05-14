@@ -5,6 +5,7 @@ from abc import abstractmethod
 
 class Media:
     def __init__(self, attachment: dict, headers):
+        self.name = ""
         self.attachment = attachment
         self.type = attachment.get("type")
         self.jobid = attachment.get("jobid")

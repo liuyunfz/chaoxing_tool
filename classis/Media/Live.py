@@ -16,6 +16,7 @@ class Live(Media):
         super().__init__(attachment, headers)
         self.defaults = defaults
         self.courseId = courseId
+        self.name = self.attachment.get("property").get("title")
 
     def do_finish(self):
         _stream_name = self.attachment.get("property").get("streamName")
@@ -28,3 +29,17 @@ class Live(Media):
             return True
         else:
             return False
+
+    def get_status(self) -> 'dict|None':
+        status_url = f"https://mooc1.chaoxing.com/ananas/live/liveinfo?liveid={self.attachment.get('property').get('liveId')}&userid={self.defaults.get('userid')}&clazzid={self.defaults.get('clazzId')}&knowledgeid={self.defaults.get('knowledgeid')}&courseid={self.courseId}&jobid={self.attachment.get('property').get('_jobid')}&ut=s"
+        mission_headers = {
+            "Referer": "https://mooc1.chaoxing.com/ananas/modules/live/index.html?v=2022-1214-1139"
+        }
+        mission_headers.update(self.headers)
+        status_text = doGet(url=status_url, headers=mission_headers)
+        try:
+            status_json = json.loads(status_text)
+            return status_json
+        except Exception as e:
+            loguru.logger.error(e)
+            return

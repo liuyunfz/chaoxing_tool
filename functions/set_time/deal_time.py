@@ -5,6 +5,7 @@ import time
 import loguru
 
 import classis.User
+from classis.Media.Live import Live
 from classis.Media.Video import Video
 from classis.SelfException import RequestException
 from functions.deal_mission import DealCourse
@@ -47,6 +48,33 @@ class DealVideo:
             _url = video.get_url(_now if _now < duration else duration, duration, dtoken, 3)
             _rsp = doGet(_url, _headers)
             loguru.logger.debug(_rsp)
+            time.sleep(59)
+
+    @staticmethod
+    def run_live(live: Live, user, log):
+        live_status = live.get_status()
+        if live_status:
+            duration = live_status.get("temp").get("data").get('duration')
+            _headers = {
+                'Accept': '*/*',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                'Connection': 'keep-alive',
+                'Content-Type': 'application/json',
+                'Sec-Fetch-Dest': 'empty',
+                'Host': 'mooc1.chaoxing.com',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'Referer': 'https://mooc1.chaoxing.com/ananas/modules/video/index.html?v=2023-0203-1904'
+            }
+            _headers.update(user.headers)
+        else:
+            raise RequestException("直播状态获取失败")
+            return
+        _dis = (duration + 59) // 60
+        for i in range(int(_dis)):
+            log.info(f"'{live.name}'当前刷取时长{i + 1}分钟,总时长{_dis}分钟")
+            live.do_finish()
             time.sleep(59)
 
     def get_videos(self):

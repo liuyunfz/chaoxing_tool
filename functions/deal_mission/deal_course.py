@@ -72,8 +72,13 @@ class DealCourse:
                                 self.log.info(f"开始处理Doc文件任务点:{media_name}")
                                 finish_status = Document(media, self.user.headers, defaults, self.course_id).do_finish()
                             elif media_type == "live":
-                                self.log.info(f"开始处理直播任务点:{media.get('property').get('title')}")
-                                finish_status = Live(media, self.user.headers, defaults, self.course_id).do_finish()
+                                _live = Live(media, self.user.headers, defaults, self.course_id)
+                                _thread = threading.Thread(target=DealVideo.run_live, args=(_live, self.user, self.log))
+                                self.thread_pool.append(_thread)
+                                self.log.info(f"直播任务点'{_live.name}'，已自动启动等时长刷取线程")
+                                _thread.start()
+                                continue
+
                             elif "bookname" in media.get("property"):
                                 self.log.info(f"开始处理图书任务点:{media_name}")
                                 finish_status = Book(media, self.user.headers, defaults, self.course_id).do_finish()
