@@ -16,6 +16,7 @@ class Video(Media):
         self.defaults = defaults
         self.dtype = dtype
         self.name = name
+        self.rt = attachment.get("property").get("rt") or 0.9
 
     def get_status(self) -> 'dict|None':
         status_url = "https://mooc1-1.chaoxing.com/ananas/status/{}?k=&flag=normal&_dc=1600850935908".format(self.objectId)
@@ -73,6 +74,6 @@ class Video(Media):
             format(self.defaults.get("clazzId"), self.defaults.get("userid"), self.jobid, self.objectId, int(time_end) * 1000, "d_yHJ!$pdA~5", duration * 1000, duration)
         enc = hashlib.md5(enc_raw.encode()).hexdigest()
         url_former = self.reportUrl
-        url_later = "/{0}?clazzId={1}&playingTime={2}&duration={10}&clipTime=0_{10}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag={9}&view=pc&enc={7}&rt=0.9&dtype={11}&_t={8}". \
-            format(dtoken, self.defaults.get("clazzId"), time_end, self.objectId, self.attachment.get("otherInfo"), self.jobid, self.defaults.get("userid"), enc, int(time.time() * 1000), play_type, duration, self.dtype)
+        url_later = "/{0}?clazzId={1}&playingTime={2}&duration={10}&clipTime=0_{10}&objectId={3}&otherInfo={4}&jobid={5}&userid={6}&isdrag={9}&view=pc&enc={7}&rt={12}&dtype={11}&_t={8}". \
+            format(dtoken, self.defaults.get("clazzId"), time_end, self.objectId, self.attachment.get("otherInfo"), self.jobid, self.defaults.get("userid"), enc, int(time.time() * 1000), play_type, duration, self.dtype, self.rt)
         return url_former + url_later
