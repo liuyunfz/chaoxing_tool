@@ -48,7 +48,10 @@ def run(user: classis.User.User, log):
         else:
             try:
                 for i in re.split("[,，]", choice):
-                    chapter_choice.append(chapter_media.chapter_all[int(i) - 1])
+                    if (chapter_item := chapter_media.chapter_all[int(i) - 1])['available']:
+                        chapter_choice.append(chapter_item)
+                    else:
+                        log.info(f"您所选的课程序号'{i}'对应的课程'{chapter_item['name'][2:]}'被锁定，已为您跳过")
             except Exception as e:
                 log.error("序号输入错误，请尝试重新输入")
                 loguru.logger.error(e)
@@ -81,7 +84,7 @@ def run(user: classis.User.User, log):
                     chapter_media.do_download("./downloads", attachment=item)
             else:
                 for i in re.split("[,，]", choice):
-                    chapter_media.do_download("./downloads", attachment=media_all[int(i)-1])
+                    chapter_media.do_download("./downloads", attachment=media_all[int(i) - 1])
         except Exception as e:
             log.error("序号输入错误，请尝试重新输入")
             loguru.logger.error(e)

@@ -74,12 +74,16 @@ class Course:
             self._child_chapter_list.clear()
 
     def __recursion_chapter_item(self, element, depth: int):
+        if (click_data := xpath_first(element, "./div/@onclick")) != "":
+            knowledge_id = click_data.split("'")[3]
+        else:
+            knowledge_id = ''
         self._child_chapter_list.append({
-            "name": xpath_first(element, "./div[1]/div[1]/div[@class='catalog_name']").xpath('string(.)').strip(),
+            "name": ("🔒 " if knowledge_id == '' else '') + xpath_first(element, "./div[1]/div[1]/div[@class='catalog_name']").xpath('string(.)').strip(),
             "depth": depth,
-            "knowledge_id": xpath_first(element, "./div/@onclick").split("'")[3],
-            "job_count": int(xpath_first(element, "./div[1]/div[1]/div[@class='catalog_task']/input/@value") or "0")
-
+            "knowledge_id": knowledge_id,
+            "job_count": int(xpath_first(element, "./div[1]/div[1]/div[@class='catalog_task']/input/@value") or "0"),
+            "available": knowledge_id != ''
         })
         chapter_list = element.xpath("./ul/li")
         if chapter_list:
