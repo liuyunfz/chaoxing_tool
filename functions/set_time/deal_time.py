@@ -35,20 +35,31 @@ class DealVideo:
                 'Host': 'mooc1.chaoxing.com',
                 'Sec-Fetch-Mode': 'cors',
                 'Sec-Fetch-Site': 'same-origin',
-                'Referer': 'https://mooc1.chaoxing.com/ananas/modules/video/index.html?v=2023-0203-1904'
+                'Referer': 'https://mooc1.chaoxing.com/ananas/modules/video/index.html?v=2023-0519-2354'
             }
             _headers.update(user.headers)
         else:
             raise RequestException("视频状态获取失败")
             return
-        _dis = (duration + 59) // 60 if all_time == 0 else all_time
-        for i in range(int(_dis)):
-            log.info(f"'{video.name}'当前刷取时长{i + 1}分钟,总时长{_dis}分钟")
-            _now = (i + 1) * 60
-            _url = video.get_url(_now if _now < duration else duration, duration, dtoken, 3)
+
+        _url = video.get_url(0, duration, dtoken, 3)
+        _rsp = doGet(_url, _headers)
+        loguru.logger.debug(_rsp)
+        time_all = round(duration / 60, 2)
+        time_m = duration // 60 if all_time == 0 else all_time
+        time_s = duration - time_m * 60
+        for i in range(time_m):
+            time.sleep(59.8)
+            _url = video.get_url(i * 60 + 59, duration, dtoken, 0)
+            log.info(f"'{video.name}'当前刷取时长{i + 1}分钟,总时长{time_all}分钟")
             _rsp = doGet(_url, _headers)
             loguru.logger.debug(_rsp)
-            time.sleep(59)
+        if time_s:
+            time.sleep(time_s)
+            _url = video.get_url(duration, duration, dtoken, 4)
+            log.info(f"'{video.name}'当前刷取时长{time_all}分钟,总时长{time_all}分钟")
+            _rsp = doGet(_url, _headers)
+            loguru.logger.debug(_rsp)
 
     @staticmethod
     def run_live(live: Live, user, log):

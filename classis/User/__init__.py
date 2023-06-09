@@ -50,7 +50,7 @@ class User:
                     self.cookieStr = cookieStr
                     self.headers = {
                         'User-Agent': GloConfig.data.get("GloConfig").get("headers").get("User-Agent"),
-                        "Cookie": cookieStr
+                        # "Cookie": cookieStr
                     }
                 else:
                     raise LoginException(rsp_json.get("msg2"))

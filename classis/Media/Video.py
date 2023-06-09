@@ -48,7 +48,7 @@ class Video(Media):
                 'Host': 'mooc1.chaoxing.com',
                 'Sec-Fetch-Mode': 'cors',
                 'Sec-Fetch-Site': 'same-origin',
-                'Referer': 'https://mooc1.chaoxing.com/ananas/modules/video/index.html?v=2023-0203-1904'
+                'Referer': 'https://mooc1-2.chaoxing.com/ananas/modules/video/index.html?v=2023-0512-1953'
             }
             _headers.update(self.headers)
             _rsp = doGet(url=_url, headers=_headers)

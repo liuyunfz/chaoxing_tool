@@ -15,6 +15,8 @@ with open("config.yml", "r", encoding="utf-8") as f:
     glo_timeout = config.get("GloConfig").get("timeout")
     logger.success("Loaded config successfully")
 
+ses = requests.session()
+
 
 def doGet(url: str, headers: 'dict|str' = glo_headers, ifFullBack: bool = False) -> 'str|requests.Response':
     """
@@ -27,7 +29,8 @@ def doGet(url: str, headers: 'dict|str' = glo_headers, ifFullBack: bool = False)
     """
     try:
         logger.debug("Do Get to Url %s" % url)
-        html = get(url=url, headers=headers)
+        _headers = ses.headers.update(headers)
+        html = ses.get(url=url, headers=_headers, timeout=glo_timeout)
         if ifFullBack:
             return html
         if html.status_code == 200:
@@ -52,7 +55,8 @@ def doPost(url: str, headers: 'dict|str' = glo_headers, data: 'dict|str' = "", i
     try:
         logger.debug("Do Post to Url %s" % url)
         logger.debug("With data: %s" % data)
-        html = post(url=url, headers=headers, data=data, timeout=glo_timeout)
+        _headers = ses.headers.update(headers)
+        html = ses.post(url=url, headers=_headers, data=data, timeout=glo_timeout)
         if ifFullBack:
             return html
         if html.status_code == 200:
