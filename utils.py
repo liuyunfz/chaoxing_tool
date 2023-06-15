@@ -29,8 +29,9 @@ def doGet(url: str, headers: 'dict|str' = glo_headers, ifFullBack: bool = False)
     """
     try:
         logger.debug("Do Get to Url %s" % url)
-        _headers = ses.headers.update(headers)
-        html = ses.get(url=url, headers=_headers, timeout=glo_timeout)
+        ses.headers.clear()
+        ses.headers.update(headers)
+        html = ses.get(url=url, timeout=glo_timeout)
         if ifFullBack:
             return html
         if html.status_code == 200:
@@ -55,8 +56,9 @@ def doPost(url: str, headers: 'dict|str' = glo_headers, data: 'dict|str' = "", i
     try:
         logger.debug("Do Post to Url %s" % url)
         logger.debug("With data: %s" % data)
-        _headers = ses.headers.update(headers)
-        html = ses.post(url=url, headers=_headers, data=data, timeout=glo_timeout)
+        ses.headers.clear()
+        ses.headers.update(headers)
+        html = ses.post(url=url, data=data, timeout=glo_timeout)
         if ifFullBack:
             return html
         if html.status_code == 200:
