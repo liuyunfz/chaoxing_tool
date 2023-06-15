@@ -41,7 +41,7 @@ class Course:
         ele = etree.HTML(html_text)
         ele_root = xpath_first(ele, "//div[@class='fanyaChapterWhite']")
         self.mission_all = 0
-        self.mission_fn = int(xpath_first(ele_root, "./div[1]/h2/span/text()"))
+        self.mission_fn = xpath_first(ele_root, "./div[1]/h2/span/text()")
         logger.info(f"mission_finished/mission_all: {self.mission_fn}/{self.mission_all}")
         ele_units = ele_root.xpath("./div[2]/div[@class='chapter_td']/div[@class='chapter_unit']")
         for unit in ele_units:

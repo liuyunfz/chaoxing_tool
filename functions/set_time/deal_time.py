@@ -46,7 +46,7 @@ class DealVideo:
         _rsp = doGet(_url, _headers)
         loguru.logger.debug(_rsp)
         time_all = round(duration / 60, 2)
-        time_m = duration // 60 if all_time == 0 else all_time
+        time_m = duration // 60 if all_time == 0 else int(all_time)
         time_s = duration - time_m * 60
         for i in range(time_m):
             time.sleep(59.8)
