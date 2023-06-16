@@ -101,7 +101,8 @@ class User:
                                 tmp_url,
                                 xpath_first(item, "./div[2]/h3/a/span/@title"),
                                 xpath_first(item, "./div[2]/p[@class='line2 color3']/@title"),
-                                headers=self.headers
+                                headers=self.headers,
+                                ifOpen=(xpath_first(item, "./div[1]/a[@class='not-open-tip']") == "")
                                 )
                 logger.debug("Add course:\n" + str(course))
                 self.course_list.append(course)

@@ -32,6 +32,9 @@ class DealCourse:
         self.thread_pool = []
 
     def do_finish(self):
+        if not self.course.ifOpen:
+            self.log.warning("本课程已结课或锁定，将自动跳过")
+            return
         from functions.set_time import DealVideo
         self.deal_course()
         self.thread_pool.clear()

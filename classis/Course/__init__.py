@@ -11,7 +11,7 @@ from utils import doGet, xpath_first, doPost
 
 
 class Course:
-    def __init__(self, course_id: str, class_id: str, url: str, course_name: str, course_author: str, cpi: str = "", headers: dict = {}):
+    def __init__(self, course_id: str, class_id: str, url: str, course_name: str, course_author: str, cpi: str = "", headers: dict = {}, ifOpen: bool = True):
         self.course_id = course_id
         self.class_id = class_id
         self.url = url
@@ -25,6 +25,7 @@ class Course:
         self._child_chapter_list = []
         self.url_log = ""
         self.headers = headers
+        self.ifOpen = ifOpen
         self._jobEnc = None
 
     def __str__(self) -> str:

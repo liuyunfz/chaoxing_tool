@@ -10,7 +10,7 @@ class Media:
         self.type = attachment.get("type")
         self.jobid = attachment.get("jobid")
         self.headers = {
-            "Cookie": headers.get("Cookie"),
+            # "Cookie": headers.get("Cookie"),
             "User-Agent": headers.get("User-Agent")
         }
 
