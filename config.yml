@@ -18,6 +18,9 @@ InfoStr:
 
 GloConfig:
   timeout: 3  # 全局requests模块的超时时长
+  delay: # 全局request请求的延迟时间，防止过快访问导致触发反爬
+    enable: True
+    time: 0.5 # 支持小数，单位为秒
   headers:
     User-Agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
   debug:

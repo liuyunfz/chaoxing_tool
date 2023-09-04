@@ -6,7 +6,7 @@ from requests import post, get
 import yaml
 import pyDes
 import binascii
-
+from time import sleep
 from classis.SelfException import RequestException
 from lxml.etree import _ElementUnicodeResult
 with open("config.yml", "r", encoding="utf-8") as f:
@@ -14,6 +14,8 @@ with open("config.yml", "r", encoding="utf-8") as f:
     glo_headers = config.get("GloConfig").get("headers")
     glo_timeout = config.get("GloConfig").get("timeout")
     logger.success("Loaded config successfully")
+    if_delay = config.get("GloConfig").get("delay").get("enable")
+    time_delay = config.get("GloConfig").get("delay").get("time")
 
 ses = requests.session()
 
@@ -31,6 +33,7 @@ def doGet(url: str, headers: 'dict|str' = glo_headers, ifFullBack: bool = False)
         logger.debug("Do Get to Url %s" % url)
         ses.headers.clear()
         ses.headers.update(headers)
+        sleep(time_delay) if if_delay else None
         html = ses.get(url=url, timeout=glo_timeout)
         if ifFullBack:
             return html
@@ -58,6 +61,7 @@ def doPost(url: str, headers: 'dict|str' = glo_headers, data: 'dict|str' = "", i
         logger.debug("With data: %s" % data)
         ses.headers.clear()
         ses.headers.update(headers)
+        sleep(time_delay) if if_delay else None
         html = ses.post(url=url, data=data, timeout=glo_timeout)
         if ifFullBack:
             return html
