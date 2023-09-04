@@ -46,7 +46,7 @@ class Course:
         logger.info(f"mission_finished/mission_all: {self.mission_fn}/{self.mission_all}")
         ele_units = ele_root.xpath("./div[2]/div[@class='chapter_td']/div[@class='chapter_unit']")
         for unit in ele_units:
-            unit_catalog_name = xpath_first(unit, "./div[1]/div[1]/div[@class='catalog_name']/span/text()").strip()
+            unit_catalog_name = xpath_first(unit, "./div[1]/div[1]/div[@class='catalog_name newCatalog_name']/a/span/text()").strip()
             """
             {
                 1计算机系统概论
@@ -80,7 +80,7 @@ class Course:
         else:
             knowledge_id = ''
         self._child_chapter_list.append({
-            "name": ("🔒 " if knowledge_id == '' else '') + xpath_first(element, "./div[1]/div[1]/div[@class='catalog_name']").xpath('string(.)').strip(),
+            "name": ("🔒 " if knowledge_id == '' else '') + xpath_first(xpath_first(element, "./div/div/div[@class='catalog_name newCatalog_name']/a[@class='clicktitle']"), "string(.)").strip(),
             "depth": depth,
             "knowledge_id": knowledge_id,
             "job_count": int(xpath_first(element, "./div[1]/div[1]/div[@class='catalog_task']/input/@value") or "0"),

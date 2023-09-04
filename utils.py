@@ -8,7 +8,7 @@ import pyDes
 import binascii
 
 from classis.SelfException import RequestException
-
+from lxml.etree import _ElementUnicodeResult
 with open("config.yml", "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)
     glo_headers = config.get("GloConfig").get("headers")
@@ -79,7 +79,11 @@ def xpath_first(element, path):
     :param path: xpath路径
     :return: 第一个元素或空字符串
     """
+    if type(element) in (str, int):
+        return element
     res = element.xpath(path)
+    if type(res) == _ElementUnicodeResult:
+        return res
     if len(res) == 1:
         return res[0]
     else:
