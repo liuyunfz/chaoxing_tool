@@ -127,7 +127,7 @@ class DealCourse:
                 medias_url = "https://mooc1.chaoxing.com/knowledge/cards?clazzid={0}&courseid={1}&knowledgeid={2}&num={4}&ut=s&cpi={3}&v=20160407-1".format(self.class_id, self.course_id, chapter_item.get("knowledge_id"), self.cpi, page)
                 medias_rsp = doGet(url=medias_url, headers=self.user.headers)
                 medias_HTML = etree.HTML(medias_rsp)
-                medias_text = xpath_first(medias_HTML, "//script[1]/text()")
+                medias_text = xpath_first(medias_HTML, "//body/script[1]/text()")
                 datas_raw = re.findall(r"mArg = ({[\s\S]*)}catch", medias_text).pop()
                 datas = json.loads(datas_raw.strip()[:-1])
                 attach_list.append(datas)
