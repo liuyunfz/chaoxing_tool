@@ -29,7 +29,8 @@ GloConfig:
 
 FunConfig:
   deal-mission:
-    video-mode: 0 # 0为立即完成,1为等时长刷取
+    video-mode: 1 # 0为立即完成,1为等时长刷取
+    single-thread: false  #是否为单线程刷取，如果为false则会同时启动所有待完成视频节点的线程
   set-log:
     delay: 30 # 刷取学习次数的延迟，单位s
 

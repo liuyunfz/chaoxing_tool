@@ -1,6 +1,7 @@
 # _*_ coding:utf-8 _*_
 # author: liuyunfz
 import json
+import random
 import re
 import threading
 import time
@@ -29,6 +30,7 @@ class DealCourse:
         self.cpi = course.cpi
         self.mission_list = []
         self.video_mode = GloConfig.data.get("FunConfig").get("deal-mission").get("video-mode")
+        self.single_thread = GloConfig.data.get("FunConfig").get("deal-mission").get("single-thread")
         self.thread_pool = []
 
     def do_finish(self):
@@ -65,9 +67,18 @@ class DealCourse:
                                         finish_status = _video.do_finish()
                                     else:
                                         _thread = threading.Thread(target=DealVideo.run_video, args=(_video, self.user, self.log))
-                                        self.thread_pool.append(_thread)
-                                        self.log.info(f"视频任务点'{media_name}'，已根据您的配置启动等时长刷取线程")
-                                        _thread.start()
+                                        if self.single_thread:
+                                            self.log.info(f"检测到您启动了单线程模式")
+                                            self.log.info(f"开始刷取视频任务点'{media_name}'，每分钟更新进度")
+                                            _thread.start()
+                                            _thread.join()
+                                        else:
+
+                                            self.thread_pool.append(_thread)
+                                            self.log.info(f"视频任务点'{media_name}'，已根据您的配置启动等时长刷取线程")
+                                            _thread.start()
+                                            time.sleep(random.random() + 0.5)
+
                                         continue
 
                             elif media_type == "read":
