@@ -24,6 +24,8 @@ def run(user: classis.User.User, log):
     delay = GloConfig.data.get("FunConfig").get("set-log").get("delay")
     while True:
         choice = input("请选择您要刷取学习次数的课程序号，或者输入q退出本功能\n序号:")
+        if choice == 'q':
+            return
         try:
             course = user.course_list[int(choice) - 1]
             log.info(f"当前课程'{course.course_name}'学习次数共{course.get_count_log()}次")
