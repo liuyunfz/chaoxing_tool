@@ -14,11 +14,10 @@ import time
 import loguru
 from config import GloConfig
 import classis.User
-from utils import doGet
-
+from utils import doGet, clear_console
 
 def run(user: classis.User.User, log):
-    os.system("cls")
+    clear_console()
     for i in range(len(user.course_list)):
         print("%d.%s" % (i + 1, user.course_list[i].course_name))
     delay = GloConfig.data.get("FunConfig").get("set-log").get("delay")
