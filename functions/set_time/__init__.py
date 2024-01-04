@@ -16,10 +16,11 @@ import threading
 import loguru
 import classis.User
 from .deal_time import DealVideo
+from utils import clear_console
 
 
 def run(user: classis.User.User, log):
-    os.system("cls")
+    clear_console()
     for i in range(len(user.course_list)):
         print("%d.%s" % (i + 1, user.course_list[i].course_name))
     while True:

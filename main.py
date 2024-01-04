@@ -19,7 +19,7 @@ log = UserLogger()
 def sign_in(infoStr: dict, auto_login: bool = True) -> User:
     sign_status = False
     sign_mode = ''
-    os.system("cls")
+    clear_console()
     if auto_login and GloConfig.data.get("UserData").get("auto-sign") and GloConfig.data.get("UserData").get("cookie"):
         log.info("您已开启自动登录模式且本地已检测到账号Cookie,即将校验登录...")
         try:
@@ -72,7 +72,7 @@ def get_config():
 
 if __name__ == '__main__':
     config = get_config()
-    os.system("cls")
+    clear_console()
     print(config.get("InfoStr").get("instructions"))
     input("\n回车确认后正式使用本软件:")
     user = sign_in(config.get("InfoStr"))
@@ -98,7 +98,7 @@ if __name__ == '__main__':
             print(menu_str)
             fun_i = int(input("\n请输入您要使用功能的序号:"))
             if fun_i == len(functions) + 1:
-                os.system("cls")
+                clear_console()
                 user = sign_in(config.get("InfoStr"), False)
                 get_course(user)
                 continue
@@ -109,7 +109,7 @@ if __name__ == '__main__':
                 exit(0)
             else:
                 func = functions[fun_i - 1]
-                os.system("cls")
+                clear_console()
                 print("\n".join([f"功能名称: {func.__disName__}",
                                  f"作者: {func.__author__}",
                                  f"使用须知: {func.__description__}"])
@@ -117,7 +117,7 @@ if __name__ == '__main__':
                 if input("\n回车确认使用本功能，其他输入则会退回主菜单:") == "":
                     func.run(user, log)
                 else:
-                    os.system("cls")
+                    clear_console()
                     continue
 
         except Exception as e:

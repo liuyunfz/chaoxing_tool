@@ -6,6 +6,7 @@ from requests import post, get
 import yaml
 import pyDes
 import binascii
+import os
 from time import sleep
 from classis.SelfException import RequestException
 from lxml.etree import _ElementUnicodeResult
@@ -126,6 +127,13 @@ def encrypt_des(msg, key):
     des_obj = pyDes.des(key, key, pad=None, padmode=pyDes.PAD_PKCS5)
     secret_bytes = des_obj.encrypt(msg, padmode=pyDes.PAD_PKCS5)
     return binascii.b2a_hex(secret_bytes)
+
+
+def clear_console():
+    if os.name == "nt":
+        os.system("cls")
+    else:
+        os.system("clear")
 
 
 if __name__ == '__main__':

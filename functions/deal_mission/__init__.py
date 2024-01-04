@@ -17,11 +17,12 @@ import time
 import loguru
 
 from .deal_course import DealCourse
+from utils import clear_console
 import classis.User
 
 
 def run(user: classis.User.User, log):
-    os.system("cls")
+    clear_console()
     for i in range(len(user.course_list)):
         print("%d.%s" % (i + 1, user.course_list[i].course_name))
 
